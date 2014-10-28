@@ -9,6 +9,11 @@
 
 #include <GL/GL.h>
 
+/*
+All the fractal calculations are done in here.
+
+The three static consts at the beginning control how things are calculated.
+*/
 class TerrainGenerator
 {
 public:

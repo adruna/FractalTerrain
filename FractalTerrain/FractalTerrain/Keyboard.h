@@ -27,6 +27,10 @@ struct KeyHandler
 	KeyHandler(void(*)(unsigned char, KeyState) = nullptr, KeyState = DOWN);
 };
 
+/*
+Manages keyboard input.
+I was kinda proud of this back in the day, but I should probably use whatever glfw provides for input.
+*/
 class Keyboard
 {
 private:

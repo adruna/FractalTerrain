@@ -9,6 +9,11 @@
 #include <Windows.h>
 #include <GL\freeglut.h>
 
+/*
+This class is used to control where the "camera" is.
+
+Modeled after some generic fps functionality.
+*/
 class Camera
 {
 private:

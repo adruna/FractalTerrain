@@ -1,6 +1,11 @@
 #ifndef VECTOR_H
 #define VECTOR_H
 
+/*
+Holy crap this was bad.
+
+It was some interesting object oriented stuff, but I'm pretty sure some of these even had memory leeks going on at some point or still...
+*/
 class Vector
 {
 protected:
