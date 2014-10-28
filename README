@@ -4,7 +4,7 @@ Project: Fractal Terrain Optimization.
 Assignment:
 	Take a previous project I've worked on and optimize it.
 
-Original Assignment:
+Original Assignment: (DSA2)
 	Use the diamond square fractal terrain generation algorithm in an OpenGL project with some sort of way to "view" the terrain. (Specifically old open gl at the time).
 
 Personal goals:
