@@ -1,0 +1,17 @@
+# Git Ignore for Fractal Terrain Generator
+# Author : Luke Familo
+
+# User specific options, individuals can keep track of this file if need be.
+*.suo
+
+# File used for things like "find declaration," rebuilt on project startup, so not necessary to commit.
+*.sdf
+*.opensdf
+
+# This folder has something to do with intellisense, but again, we dont need them.
+ipch
+
+# Folders used by compiler.
+[Dd]ebug
+[Bb]in
+[Rr]elease
