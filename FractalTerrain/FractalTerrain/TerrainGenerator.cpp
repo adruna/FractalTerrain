@@ -1,7 +1,5 @@
 #include "TerrainGenerator.h"
 
-GLuint vao;
-
 TerrainGenerator::TerrainGenerator()
 { reset(); }
 
@@ -268,4 +266,5 @@ void TerrainGenerator::drawNextPoints()
 	glEnd();
 	glPointSize(1);
 	glColor3f(1,1,1);
+	
 }

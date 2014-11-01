@@ -38,7 +38,10 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LibraryPath>$(SolutionDir)\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -47,10 +50,12 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glu32.lib;glew32.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <Profile>true</Profile>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(SolutionDir)\freeglut\freeglut.dll" "$(OutDir)"</Command>
+      <Command>copy "$(SolutionDir)\bin" "$(OutDir)"
+copy "$(SolutionDir)\lib" "$(OutDir)"</Command>
       <Message>Copy's the freeglut.dll into the executable directory.</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -66,10 +71,11 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>opengl32.lib;glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glu32.lib;glew32.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(SolutionDir)\freeglut\freeglut.dll" "$(OutDir)"</Command>
+      <Command>copy "$(SolutionDir)\bin"$(OutDir)"
+copy "$(SolutionDir)\library" "$(OutDir)"</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy's the freeglut.dll into the executable directory.</Message>

@@ -13,10 +13,6 @@ This was back when I didn't really know c++, so these are just silly for now.
 class Globals
 {
 public:
-	static float lastTotalTime;
-	static float deltaTime;
-	static float fixedDeltaTime;
-	static float lastFixedTime;
 
 	static float randf(float lower = 0, float upper = 1) { return rand()/(float)RAND_MAX * (upper - lower) + lower; }
 };

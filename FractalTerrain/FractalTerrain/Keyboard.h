@@ -3,6 +3,7 @@
 
 #include <map>
 #include <list>
+#include <GL\glfw3.h>
 
 enum KeyState
 {
@@ -45,6 +46,7 @@ public:
 	static void update(void);
 	static void setIdleCallback(void(*)());
 	
+	static void keyHandler(GLFWwindow *, unsigned int);
 	static void keyDownHandler(unsigned char, int, int);
 	static void keyUpHandler(unsigned char, int, int);
 

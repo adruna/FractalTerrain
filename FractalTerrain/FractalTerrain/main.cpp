@@ -1,4 +1,7 @@
 
+#include "GlobalValues.h"
+#include <GL\glew.h>
+#include <GL\glfw3.h>
 #include "TerrainGenerator.h"
 #include "Camera.h"
 
@@ -8,38 +11,14 @@ static Keyboard keyboard;
 static Camera camera;
 static TerrainGenerator terrain;
 
-float Globals::lastTotalTime;
-float Globals::deltaTime;
-float Globals::fixedDeltaTime;
-float Globals::lastFixedTime;
+GLFWwindow *window;
 
 float matrix[16];
 
-void getDT()
-{
-	Globals::deltaTime = glutGet(GLUT_ELAPSED_TIME) - Globals::lastTotalTime;
-	Globals::lastTotalTime = Globals::deltaTime + Globals::lastTotalTime;
-}
-
-// display every 10 ms.
-void checkFixedDT()
-{
-	Globals::lastFixedTime += Globals::deltaTime;
-	if (Globals::lastFixedTime >= 0.10f)
-	{
-		Globals::fixedDeltaTime = Globals::lastFixedTime;
-		Globals::lastFixedTime = 0;
-
-		glutPostRedisplay();
-	}
-}
 
 // Idle, checks to see if its time to display or not, and tells keyboard to update.
 void idle()
 {
-	getDT();
-	checkFixedDT();
-
 	keyboard.update();
 }
 
@@ -48,34 +27,31 @@ void idle()
 void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	glLoadIdentity();
-	camera.applyViewingTransformations();
 	
+	glLoadIdentity();
+
+	camera.applyViewingTransformations();
 	terrain.drawTerrain();
+	
+	//glFlush();
+	glfwSwapBuffers(window);
 
-	glColor3f(1,1,1);
-	glTranslatef(0,0,5);
-	glutWireTeapot(1);
-	glTranslatef(0,0,-10);
-	glutWireTeapot(1);
+	//glColor3f(1,1,1);
+	//glTranslatef(0,0,5);
+	//glutWireTeapot(1);
+	//glTranslatef(0,0,-10);
+	//glutWireTeapot(1);
 
-	glFlush();
-	glutSwapBuffers();
+	//glFlush();
+	//glutSwapBuffers();
 }
 
-void passiveMouse(int x, int y)
-{
-	camera.passiveMouseFunc(x,y);
-
-	idle();
-}
 
 // Toggle camera capture, and cursor showing.
 void toggleCameraLookAt(unsigned char key, KeyState state)
 { 
 	camera.captureMouse = !camera.captureMouse; 
-	glutSetCursor((!camera.captureMouse) ? GLUT_CURSOR_INHERIT : GLUT_CURSOR_NONE);
+	//glutSetCursor((!camera.captureMouse) ? GLUT_CURSOR_INHERIT : GLUT_CURSOR_NONE);
 }
 
 // run away
@@ -92,7 +68,7 @@ void finishTerrain(unsigned char key, KeyState state)
 void resetTerrain(unsigned char key, KeyState state)
 { terrain.reset(); }
 
-void reshape(int w, int h)
+void reshape(GLFWwindow *window, int w, int h)
 {
 	glViewport(0, 0, (GLsizei) w, (GLsizei) h); 
 	glMatrixMode(GL_PROJECTION);
@@ -101,15 +77,32 @@ void reshape(int w, int h)
    
 	glMatrixMode(GL_MODELVIEW); 
 	glLoadIdentity();
-
+	printf("woo");
 	camera.reshapeFunc(w,h);
 }
 
-void init()
+void mouseCallback(GLFWwindow *window, double x, double y)
+{
+	camera.mouseMoved(x, y);
+	if (camera.captureMouse)
+	{ glfwSetCursorPos(window, 400, 400); }
+
+	printf("%f %f \n", (float)x, (float)y);
+}
+
+void init(GLFWwindow *window)
 {
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glEnable(GL_DEPTH);
 
+	terrain.nextIteration();
+	glfwSetCursorPosCallback(window, mouseCallback);
+	glfwSetWindowSizeCallback(window, reshape);
+	glfwSetCharCallback(window, keyboard.keyHandler);
+
+	reshape(window, 800, 800);
+
+	
 	keyboard.setIdleCallback(idle);
 	keyboard.addKeyHandler(escapePressed, VK_ESCAPE, UP);
 	keyboard.addKeyHandler(toggleCameraLookAt, 'm', UP);
@@ -120,10 +113,40 @@ void init()
 	keyboard.addKeyHandler(iterateTerrain, 'O', UP);
 	keyboard.addKeyHandler(finishTerrain, 'i', UP);
 	keyboard.addKeyHandler(finishTerrain, 'I', UP);
-
 	camera.setKeyboardCallbacks(keyboard);
+	
 }
 
+int main(int argc, char** argv)
+{
+	if (!glfwInit())
+		return -1;
+
+	window = glfwCreateWindow(800, 800, "lol", nullptr, nullptr);
+
+	if (!window)
+	{
+		glfwTerminate();
+		return -1;
+	}
+
+	glfwMakeContextCurrent(window);
+
+	glewInit();
+
+	init(window);
+
+	while (!glfwWindowShouldClose(window))
+	{
+		display();
+		glfwPollEvents();
+	}
+
+	glfwTerminate();
+
+	return 0;
+}
+/*
 int main(int argc, char** argv)
 {
 	
@@ -145,3 +168,4 @@ int main(int argc, char** argv)
 
 	return 0;
 }
+*/

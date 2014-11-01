@@ -18,22 +18,22 @@ Camera::~Camera() { }
 
 // Keyboard callbacks for movement things.
 void Camera::moveForward(unsigned char key, KeyState state)
-{ position += forward * (speed * Globals::deltaTime / 1000.0f); }
+{ position += forward * (speed); }
 
 void Camera::moveBack(unsigned char key, KeyState state)
-{ position -= forward * (speed * Globals::deltaTime / 1000.0f); }
+{ position -= forward * (speed); }
 
 void Camera::moveLeft(unsigned char key, KeyState state)
-{ position += right * (speed * Globals::deltaTime / 1000.0f); }
+{ position += right * (speed); }
 
 void Camera::moveRight(unsigned char key, KeyState state)
-{ position -= right * (speed * Globals::deltaTime / 1000.0f); }
+{ position -= right * (speed); }
 
 void Camera::moveUp(unsigned char key, KeyState state)
-{ position += up * (speed * Globals::deltaTime / 1000.0f); }
+{ position += up * (speed); }
 
 void Camera::moveDown(unsigned char key, KeyState state) // Never called
-{ position -= up * (speed * Globals::deltaTime / 1000.0f); }
+{ position -= up * (speed); }
 
 void Camera::boost(unsigned char key, KeyState)
 { speed += 10; }
@@ -43,11 +43,19 @@ void Camera::slow(unsigned char key, KeyState)
 // Uses glulookat to orient camera.
 void Camera::applyViewingTransformations()
 {
+	/*
+	gluLookAt(
+		0, 20, 0,
+		1, -2, 0,
+		0.5, 0, 0
+		);
+	/*/
 	gluLookAt(
 		position.x, position.y, position.z,
 		position.x + forward.x, position.y + forward.y, position.z + forward.z,
 		up.x, up.y, up.z
 	);
+	//*/
 }
 
 // recalculates forward, right, and up orientation vectors.
@@ -65,7 +73,7 @@ void Camera::updateVectors()
 }
 
 // handles mouse input.
-void Camera::passiveMouseFunc(int x, int y)
+void Camera::mouseMoved(int x, int y)
 {
 	if (captureMouse)
 	{
@@ -79,8 +87,6 @@ void Camera::passiveMouseFunc(int x, int y)
 		sphericalAngles[1] += dy / 250.0f;
 
 		updateVectors();
-		
-		glutWarpPointer(center.x, center.y);
 	}
 }
 

@@ -7,7 +7,7 @@
 #include <math.h>
 #include <cstdio>
 
-#include <GL/GL.h>
+#include <GL\GL.h>
 
 /*
 All the fractal calculations are done in here.

@@ -7,7 +7,7 @@
 
 #include <math.h>
 #include <Windows.h>
-#include <GL\freeglut.h>
+#include <GL\GLU.h>
 
 /*
 This class is used to control where the "camera" is.
@@ -41,7 +41,7 @@ public:
 
 	void setKeyboardCallbacks(Keyboard& keyboard);
 	void reshapeFunc(int x, int y);
-	void passiveMouseFunc(int x, int y);
+	void mouseMoved(int x, int y);
 	void applyViewingTransformations();
 };
 

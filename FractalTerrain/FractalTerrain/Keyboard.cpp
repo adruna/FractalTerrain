@@ -30,10 +30,22 @@ void Keyboard::setIdleCallback(void(_cdecl*func)())
 	idleCallback = func;
 }
 
+
+void Keyboard::keyHandler(GLFWwindow * window, unsigned int key)
+{
+	for (std::list<unsigned char>::iterator it = keysDown.begin(); it != keysDown.end(); it++)
+	{
+		if ((*it) == key)
+		{
+			keyUpHandler(key,0,0);
+			return;
+		}
+	}
+	keyDownHandler(key, 0, 0);
+}
+
 void Keyboard::keyDownHandler(unsigned char key, int x, int y)
 {
-	idleCallback();
-
 	handleCallbacks(key, DOWN);
 
 	keysDown.push_back(key);
@@ -42,7 +54,6 @@ void Keyboard::keyDownHandler(unsigned char key, int x, int y)
 
 void Keyboard::keyUpHandler(unsigned char key, int x, int y)
 {
-	idleCallback();
 
 	handleCallbacks(key, UP);
 
