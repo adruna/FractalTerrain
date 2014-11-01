@@ -8,6 +8,10 @@
 *.sdf
 *.opensdf
 
+# Files regarding the visual studio profiler, These get to be a gig after ONE frame, so lets not keep them around.
+*.psess
+*.vsp
+
 # This folder has something to do with intellisense, but again, we dont need them.
 ipch
 
