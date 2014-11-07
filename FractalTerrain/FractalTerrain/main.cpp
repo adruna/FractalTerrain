@@ -8,9 +8,8 @@
 
 using namespace std;
 
-static Camera camera;
-static TerrainGenerator* terrain;
-
+Camera *camera;
+TerrainGenerator *terrain;
 GLFWwindow *window;
 
 float matrix[16];
@@ -21,7 +20,7 @@ void display()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
 	glLoadIdentity();
-	camera.applyViewingTransformations();
+	camera->applyViewingTransformations();
 	terrain->drawTerrain();
 	
 	//glFlush();
@@ -33,7 +32,7 @@ void display()
 // Toggle camera capture, and cursor showing.
 void toggleCameraLookAt(int key, KeyState state)
 { 
-	camera.captureMouse = !camera.captureMouse; 
+	camera->captureMouse = !camera->captureMouse; 
 	// TODO: hide cursor?
 }
 
@@ -61,13 +60,13 @@ void reshape(GLFWwindow *window, int w, int h)
 	glMatrixMode(GL_MODELVIEW); 
 	glLoadIdentity();
 	printf("woo");
-	camera.reshapeFunc(w,h);
+	camera->reshapeFunc(w,h);
 }
 
 void mouseCallback(GLFWwindow *window, double x, double y)
 {
-	camera.mouseMoved(x, y);
-	if (camera.captureMouse)
+	camera->mouseMoved(x, y);
+	if (camera->captureMouse)
 	{ glfwSetCursorPos(window, 400, 400); }
 }
 
@@ -85,8 +84,6 @@ void init(GLFWwindow *window)
 	glfwSetCursorPosCallback(window, mouseCallback);
 	glfwSetWindowSizeCallback(window, reshape);
 	glfwSetKeyCallback(window, keyboardGLFWHandler);
-
-	reshape(window, 800, 800);
 	
 	addKeyHandler(escapePressed, VK_ESCAPE, UP);
 	addKeyHandler(toggleCameraLookAt, 'M', UP);
@@ -94,14 +91,18 @@ void init(GLFWwindow *window)
 	addKeyHandler(stepTerrain, 'P', UP);
 	addKeyHandler(iterateTerrain, 'O', UP);
 	addKeyHandler(finishTerrain, 'I', UP);
-	camera.setKeyboardCallbacks();
+	
+	Camera::init();
 
 	// Shaders.
 	
 	//GLuint program = initShader("vertex.glsl", "fragment.glsl");
 	//glUseProgram(program);
+	camera = new Camera();
 	terrain = new TerrainGenerator();
 	//terrain->program = program;
+
+	reshape(window, 800, 800);
 }
 
 int main(int argc, char** argv)
@@ -130,6 +131,7 @@ int main(int argc, char** argv)
 	}
 
 	glfwTerminate();
+	delete camera;
 	delete terrain;
 	return 0;
 }

@@ -17,32 +17,44 @@ Modeled after some generic fps functionality.
 class Camera
 {
 private:
-	static float speed;
-	static Vector2 sphericalAngles, center;
+	static Camera *current;
+	
+	bool boosted;
+	float speed;
+	Vector2 sphericalAngles, center;
+	Vector3 forward, up, right, position;
 
-	static void moveForward(int, KeyState);
-	static void moveBack(int, KeyState);
-	static void moveRight(int, KeyState);
-	static void moveLeft(int, KeyState);
-	static void moveUp(int, KeyState);
-	static void moveDown(int, KeyState);
-
-	static void boost(int key, KeyState state);
-	static void slow(int key, KeyState state);
+	void moveForward();
+	void moveBack();
+	void moveRight();
+	void moveLeft();
+	void moveUp();
+	void moveDown();
+	void boost();
+	void slow();
 
 	void updateVectors(void);
 
+	// Static keyboard callbacks used by current.
+	static void moveForwardCallback(int, KeyState);
+	static void moveBackCallback(int, KeyState);
+	static void moveRightCallback(int, KeyState);
+	static void moveLeftCallback(int, KeyState);
+	static void moveUpCallback(int, KeyState);
+	static void moveDownCallback(int, KeyState);
+	static void boostCallback(int key, KeyState state);
+	static void slowCallback(int key, KeyState state);
+
 public:
-	static Vector3 forward, up, right, position;
 	bool captureMouse;
 
 	Camera();
-	~Camera();
 
-	void setKeyboardCallbacks();
 	void reshapeFunc(int x, int y);
 	void mouseMoved(int x, int y);
 	void applyViewingTransformations();
+
+	static void init();
 };
 
 #endif

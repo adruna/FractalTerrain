@@ -1,8 +1,13 @@
 #include "TerrainGenerator.h"
 
-
 TerrainGenerator::TerrainGenerator()
-{ reset(); }
+{ }
+
+TerrainGenerator::TerrainGenerator(GLuint programID)
+{ 
+	program = programID;
+	reset(); 
+}
 
 TerrainGenerator::~TerrainGenerator(void) { }
 

@@ -25,6 +25,7 @@ public:
 	GLuint program;
 
 	TerrainGenerator();
+	TerrainGenerator(GLuint);
 	~TerrainGenerator();
 
 	void handleCameraPosition(Vector3);
