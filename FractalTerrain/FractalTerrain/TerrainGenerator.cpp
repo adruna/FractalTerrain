@@ -1,21 +1,43 @@
 #include "TerrainGenerator.h"
 
+
 TerrainGenerator::TerrainGenerator()
 { reset(); }
 
 TerrainGenerator::~TerrainGenerator(void) { }
 
-// Sets everything back to 0.
-void TerrainGenerator::reset()
+void TerrainGenerator::updateVao()
 {
-	// Set everything to 0.
 	for (int i = 0; i < GRID_SIZE; i++)
 	{
 		for (int j = 0; j < GRID_SIZE; j++)
 		{
 			points[i][j] = 0;
+
+			morePoints[i][j][0] = GRID_SIZE / 2 - i;
+			morePoints[i][j][1] = points[i][j];
+			morePoints[i][j][2] = GRID_SIZE / 2 - j;
 		}
 	}
+
+	GLuint vao;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+
+	GLuint aBuffer; 
+	glGenBuffers(1, &aBuffer);
+	myBuffer = aBuffer;
+	glBindBuffer(GL_ARRAY_BUFFER, myBuffer);
+	//glBufferData( GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW );
+	glBufferData(GL_ARRAY_BUFFER, sizeof(morePoints), morePoints, GL_STATIC_DRAW);
+
+
+}
+
+// Sets everything back to 0.
+void TerrainGenerator::reset()
+{
+	updateVao();
 	
 	// init.
 	it = 1;
@@ -156,6 +178,15 @@ float lerp(float tMax, float tMin, float t, float min, float max)
 // Draws the grid using the points[][] array as the y values
 void TerrainGenerator::drawTerrain()
 {
+	/*
+	glUseProgram(program);
+	glBindBuffer(GL_ARRAY_BUFFER, myBuffer);
+
+	glColor3f(1, 1, 1);
+	glDrawArrays(GL_LINE_STRIP, 0, GRID_SIZE * GRID_SIZE);
+	//glDrawArrays(GL_POLYGON, 0, GRID_SIZE * GRID_SIZE);
+	return;
+	*/
 	int halfSize = GRID_SIZE/2;
 	float y;
 

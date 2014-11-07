@@ -7,6 +7,7 @@
 #include <math.h>
 #include <cstdio>
 
+#include <GL\glew.h>
 #include <GL\GL.h>
 
 /*
@@ -21,6 +22,8 @@ public:
 	static const int CELL_SIZE = 2;
 	static const int RANDOMNESS = 20;
 
+	GLuint program;
+
 	TerrainGenerator();
 	~TerrainGenerator();
 
@@ -34,6 +37,8 @@ public:
 	
 private:
 	float points[GRID_SIZE][GRID_SIZE];
+	float morePoints[GRID_SIZE][GRID_SIZE][3];
+	GLuint	myBuffer;
 
 	int dStep;
 	int cPos[2];
@@ -50,6 +55,8 @@ private:
 	void diamond(void);
 	
 	void drawNextPoints(void);
+
+	void updateVao(void);
 };
 
 #endif

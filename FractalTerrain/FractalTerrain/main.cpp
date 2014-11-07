@@ -5,10 +5,11 @@
 #include "TerrainGenerator.h"
 #include "Camera.h"
 
+
 using namespace std;
 
 static Camera camera;
-static TerrainGenerator terrain;
+static TerrainGenerator* terrain;
 
 GLFWwindow *window;
 
@@ -21,7 +22,7 @@ void display()
 	
 	glLoadIdentity();
 	camera.applyViewingTransformations();
-	terrain.drawTerrain();
+	terrain->drawTerrain();
 	
 	//glFlush();
 	glfwSwapBuffers(window);
@@ -42,13 +43,13 @@ void escapePressed(int key, KeyState state)
 
 // Keyboard callbacks for doing things with the terrain :D
 void stepTerrain(int key, KeyState state)
-{ terrain.nextStep(); }
+{ terrain->nextStep(); }
 void iterateTerrain(int key, KeyState state)
-{ terrain.nextIteration(); }
+{ terrain->nextIteration(); }
 void finishTerrain(int key, KeyState state)
-{ terrain.finish(); }
+{ terrain->finish(); }
 void resetTerrain(int key, KeyState state)
-{ terrain.reset(); }
+{ terrain->reset(); }
 
 void reshape(GLFWwindow *window, int w, int h)
 {
@@ -70,12 +71,17 @@ void mouseCallback(GLFWwindow *window, double x, double y)
 	{ glfwSetCursorPos(window, 400, 400); }
 }
 
+void errorCallback(int a , const char* b)
+{
+	throw b;
+}
+
 void init(GLFWwindow *window)
 {
+	glfwSetErrorCallback(errorCallback);
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glEnable(GL_DEPTH);
 
-	terrain.nextIteration();
 	glfwSetCursorPosCallback(window, mouseCallback);
 	glfwSetWindowSizeCallback(window, reshape);
 	glfwSetKeyCallback(window, keyboardGLFWHandler);
@@ -89,7 +95,13 @@ void init(GLFWwindow *window)
 	addKeyHandler(iterateTerrain, 'O', UP);
 	addKeyHandler(finishTerrain, 'I', UP);
 	camera.setKeyboardCallbacks();
+
+	// Shaders.
 	
+	//GLuint program = initShader("vertex.glsl", "fragment.glsl");
+	//glUseProgram(program);
+	terrain = new TerrainGenerator();
+	//terrain->program = program;
 }
 
 int main(int argc, char** argv)
@@ -118,7 +130,7 @@ int main(int argc, char** argv)
 	}
 
 	glfwTerminate();
-
+	delete terrain;
 	return 0;
 }
 /*
