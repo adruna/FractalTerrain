@@ -20,15 +20,15 @@ private:
 	static float speed;
 	static Vector2 sphericalAngles, center;
 
-	static void moveForward(unsigned char, KeyState);
-	static void moveBack(unsigned char, KeyState);
-	static void moveRight(unsigned char, KeyState);
-	static void moveLeft(unsigned char, KeyState);
-	static void moveUp(unsigned char, KeyState);
-	static void moveDown(unsigned char, KeyState);
+	static void moveForward(int, KeyState);
+	static void moveBack(int, KeyState);
+	static void moveRight(int, KeyState);
+	static void moveLeft(int, KeyState);
+	static void moveUp(int, KeyState);
+	static void moveDown(int, KeyState);
 
-	static void boost(unsigned char key, KeyState state);
-	static void slow(unsigned char key, KeyState state);
+	static void boost(int key, KeyState state);
+	static void slow(int key, KeyState state);
 
 	void updateVectors(void);
 
@@ -39,7 +39,7 @@ public:
 	Camera();
 	~Camera();
 
-	void setKeyboardCallbacks(Keyboard& keyboard);
+	void setKeyboardCallbacks();
 	void reshapeFunc(int x, int y);
 	void mouseMoved(int x, int y);
 	void applyViewingTransformations();

@@ -17,45 +17,37 @@ Camera::Camera()
 Camera::~Camera() { }
 
 // Keyboard callbacks for movement things.
-void Camera::moveForward(unsigned char key, KeyState state)
+void Camera::moveForward(int key, KeyState state)
 { position += forward * (speed); }
 
-void Camera::moveBack(unsigned char key, KeyState state)
+void Camera::moveBack(int key, KeyState state)
 { position -= forward * (speed); }
 
-void Camera::moveLeft(unsigned char key, KeyState state)
+void Camera::moveLeft(int key, KeyState state)
 { position += right * (speed); }
 
-void Camera::moveRight(unsigned char key, KeyState state)
+void Camera::moveRight(int key, KeyState state)
 { position -= right * (speed); }
 
-void Camera::moveUp(unsigned char key, KeyState state)
+void Camera::moveUp(int key, KeyState state)
 { position += up * (speed); }
 
-void Camera::moveDown(unsigned char key, KeyState state) // Never called
+void Camera::moveDown(int key, KeyState state) // Never called
 { position -= up * (speed); }
 
-void Camera::boost(unsigned char key, KeyState)
+void Camera::boost(int key, KeyState)
 { speed += 10; }
-void Camera::slow(unsigned char key, KeyState)
+void Camera::slow(int key, KeyState)
 { if (speed > 0) speed -= 10; }
 
 // Uses glulookat to orient camera.
 void Camera::applyViewingTransformations()
 {
-	/*
-	gluLookAt(
-		0, 20, 0,
-		1, -2, 0,
-		0.5, 0, 0
-		);
-	/*/
 	gluLookAt(
 		position.x, position.y, position.z,
 		position.x + forward.x, position.y + forward.y, position.z + forward.z,
 		up.x, up.y, up.z
 	);
-	//*/
 }
 
 // recalculates forward, right, and up orientation vectors.
@@ -98,21 +90,16 @@ void Camera::reshapeFunc(int x, int y)
 }
 
 // yay keyboard callbacks.
-void Camera::setKeyboardCallbacks(Keyboard& keyboard)
+void Camera::setKeyboardCallbacks()
 {
-	keyboard.addKeyHandler(moveForward, 'w', DOWNHELD);
-	keyboard.addKeyHandler(moveForward, 'W', DOWNHELD);
-	keyboard.addKeyHandler(moveBack, 's', DOWNHELD);
-	keyboard.addKeyHandler(moveBack, 'S', DOWNHELD);
-	keyboard.addKeyHandler(moveRight, 'd', DOWNHELD);
-	keyboard.addKeyHandler(moveRight, 'D', DOWNHELD);
-	keyboard.addKeyHandler(moveLeft, 'a', DOWNHELD);
-	keyboard.addKeyHandler(moveLeft, 'A', DOWNHELD);
+	addKeyHandler(moveForward, 'W', DOWNHELD);
+	addKeyHandler(moveBack, 'S', DOWNHELD);
+	addKeyHandler(moveRight, 'D', DOWNHELD);
+	addKeyHandler(moveLeft, 'A', DOWNHELD);
 
-	keyboard.addKeyHandler(moveUp, VK_SPACE, DOWNHELD);
-	keyboard.addKeyHandler(moveUp, VK_LCONTROL, DOWNHELD); // Dosnt work.
+	addKeyHandler(moveUp, VK_SPACE, DOWNHELD);
+	addKeyHandler(moveUp, VK_LCONTROL, DOWNHELD); // Dosnt work.
 
-	keyboard.addKeyHandler(boost, 'b', UP);
-	keyboard.addKeyHandler(slow, 'B', UP);
+	addKeyHandler(slow, 'B', UP);
 }
 

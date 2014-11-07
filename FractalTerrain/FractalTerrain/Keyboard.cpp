@@ -1,50 +1,92 @@
 #include "Keyboard.h"
 
-FunctionInfo::FunctionInfo(void(*func)(unsigned char, KeyState), KeyState state)
+/*
+Structure that holds a function to call and the key state in which to call it for.
+*/
+struct FunctionInfo
 {
-	callback = func;
-	keyState = state;
+	KeyState keyState;
+	void(*callback)(int, KeyState);
+
+	FunctionInfo(void(*func)(int, KeyState) = nullptr, KeyState state = DOWN)
+	{ callback = func; keyState = state; };
+};
+
+std::map<int, std::list<FunctionInfo>> keyMap;
+std::list<int> keysDown;
+
+/*
+Determines whether or not to call the callback given the current key state.
+*/
+void handleCallbacks(unsigned char key, KeyState currentState)
+{
+	std::map<int, std::list<FunctionInfo>>::iterator keyHandler = keyMap.find(key);
+	if (keyHandler != keyMap.end()) // Find out if there is a key handler here.
+	{
+		std::list<FunctionInfo>::iterator funcInfo;
+		for (funcInfo = keyHandler->second.begin(); funcInfo != keyHandler->second.end(); funcInfo++)
+		{ // Loop through and call any that need to be called.
+			bool call = false;
+			switch (funcInfo->keyState)
+			{
+			case DOWN:
+				if (currentState == funcInfo->keyState)
+				{ call = true; }
+				break;
+			case HELD:
+				if (currentState == funcInfo->keyState)
+				{ call = true; }
+				break;
+			case DOWNHELD:
+				if (currentState == HELD || currentState == DOWN)
+				{ call = true; }
+				break;
+			case UP:
+				if (currentState == funcInfo->keyState)
+				{ call = true; }
+				break;
+			case ALL:
+				call = true;
+				break;
+			default:
+				break;
+			}//THANK YOU
+			
+			if (call)
+				funcInfo->callback(key, currentState);
+		}
+	}
 }
 
-KeyHandler::KeyHandler(void(*func)(unsigned char, KeyState), KeyState state)
-{ info.push_back(FunctionInfo(func, state)); }
-
-std::map<unsigned char, KeyHandler> Keyboard::keyMap;
-std::list<unsigned char> Keyboard::keysDown;
-
-void(*Keyboard::idleCallback)();
-
-void Keyboard::update()
+/*
+Handles the Down key state based on the list of keys down.
+Needs to be called once per frame (TODO, remove + re-implement).
+*/
+void keyboardUpdate(void)
 {
-	std::list<unsigned char>::iterator it;
-	for (it = keysDown.begin(); it != keysDown.end(); it++)
+	std::list<int>::iterator it = keysDown.begin();
+	std::list<int>::iterator end = keysDown.end();
+	for (; it != end; it++)
 	{
-		unsigned char key = *it;
+		int key = *it;
 
 		handleCallbacks(key, DOWN);
 	}
 }
 
-void Keyboard::setIdleCallback(void(_cdecl*func)())
+/*
+Repeat handler, calls handle callbacks.
+GLFWKeyFunction dosn't fire repeats during the windows key delay.
+void keyRepeatHandler(int key)
 {
-	idleCallback = func;
+	handleCallbacks(key, HELD);
 }
+*/
 
-
-void Keyboard::keyHandler(GLFWwindow * window, unsigned int key)
-{
-	for (std::list<unsigned char>::iterator it = keysDown.begin(); it != keysDown.end(); it++)
-	{
-		if ((*it) == key)
-		{
-			keyUpHandler(key,0,0);
-			return;
-		}
-	}
-	keyDownHandler(key, 0, 0);
-}
-
-void Keyboard::keyDownHandler(unsigned char key, int x, int y)
+/*
+Press handler, calls handle callbacks and puts into keysDown.
+*/
+void keyPressHandler(int key)
 {
 	handleCallbacks(key, DOWN);
 
@@ -52,61 +94,45 @@ void Keyboard::keyDownHandler(unsigned char key, int x, int y)
 	keysDown.unique();
 }
 
-void Keyboard::keyUpHandler(unsigned char key, int x, int y)
+/*
+Release handler, calls handle callbacks and removes from keys down.
+*/
+void keyReleaseHandler(int key)
 {
-
 	handleCallbacks(key, UP);
 
 	keysDown.remove(key);
 }
 
-void Keyboard::addKeyHandler(void(*callback)(unsigned char, KeyState), unsigned char key, KeyState keyState)
+/*
+GLFW key handler function.
+*/
+void keyboardGLFWHandler(GLFWwindow * window, int key, int scan, int action, int mode)
 {
-	std::map<unsigned char, KeyHandler>::iterator it = keyMap.find(key);
-
-	if (it == keyMap.end())
-	{ keyMap[key] = KeyHandler(callback, keyState); }
-	else
-	{ it->second.info.push_back(FunctionInfo(callback, keyState));}
-
-}
-
-void Keyboard::handleCallbacks(unsigned char key, KeyState currentState)
-{
-	std::map<unsigned char, KeyHandler>::iterator keyHandler = keyMap.find(key);
-	if (keyHandler != keyMap.end()) // Find out if there is a key handler here.
+	switch (action)
 	{
-		std::list<FunctionInfo>::iterator funcInfo;
-		for (funcInfo = keyHandler->second.info.begin(); funcInfo != keyHandler->second.info.end(); funcInfo++)
-		{ // Loop through and call any that need to be called.
-			bool call = false;
-			switch (funcInfo->keyState)
-			{
-				case DOWN:
-					if (currentState == funcInfo->keyState)
-					{ call = true; }
-					break;
-				case HELD:
-					if (currentState == funcInfo->keyState)
-					{ call = true; }
-					break;
-				case DOWNHELD:
-					if (currentState == HELD || currentState == DOWN)
-					{ call = true; }
-					break;
-				case UP:
-					if (currentState == funcInfo->keyState)
-					{ call = true; }
-					break;
-				case ALL:
-					call = true;
-					break;
-				default:
-					break;
-			}//THANK YOU
-
-			if (call)
-				funcInfo->callback(key, currentState);
-		}
+	case GLFW_RELEASE:
+		keyReleaseHandler(key);
+		break;
+	case GLFW_PRESS:
+		keyPressHandler(key);
+		break;
 	}
 }
+
+/*
+Adds a keyhandler with specified callback, key, and keystate.
+*/
+void addKeyHandler(void(*callback)(int, KeyState), int key, KeyState keyState)
+{
+	std::map<int, std::list<FunctionInfo>>::iterator it = keyMap.find(key);
+
+	if (it == keyMap.end())
+	{ 
+		keyMap[key] = std::list<FunctionInfo>();
+		keyMap[key].push_back(FunctionInfo(callback, keyState));
+	}
+	else
+	{ it->second.push_back(FunctionInfo(callback, keyState)); }
+}
+

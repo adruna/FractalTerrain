@@ -14,24 +14,14 @@ enum KeyState
 	ALL
 };
 
-struct FunctionInfo
-{
-	KeyState keyState;
-	void(*callback)(unsigned char, KeyState);
-
-	FunctionInfo(void(*)(unsigned char, KeyState) = nullptr, KeyState = DOWN);
-};
-
-struct KeyHandler
-{
-	std::list<FunctionInfo> info;
-	KeyHandler(void(*)(unsigned char, KeyState) = nullptr, KeyState = DOWN);
-};
+void keyboardGLFWHandler(GLFWwindow *, int, int, int, int);
+void keyboardUpdate(void);
+void addKeyHandler(void(*)(int, KeyState), int, KeyState);
 
 /*
 Manages keyboard input.
 I was kinda proud of this back in the day, but I should probably use whatever glfw provides for input.
-*/
+
 class Keyboard
 {
 private:
@@ -46,13 +36,13 @@ public:
 	static void update(void);
 	static void setIdleCallback(void(*)());
 	
-	static void keyHandler(GLFWwindow *, unsigned int);
+	static void keyHandler(GLFWwindow *, int, int, int, int);
 	static void keyDownHandler(unsigned char, int, int);
 	static void keyUpHandler(unsigned char, int, int);
 
 	static void addKeyHandler(void(*)(unsigned char, KeyState), unsigned char, KeyState);
 };
-
+*/
 #endif
 
 
