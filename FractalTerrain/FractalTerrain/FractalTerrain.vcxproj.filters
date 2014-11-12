@@ -33,7 +33,7 @@
     <ClCompile Include="Vectors.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="InitShader.cpp">
+    <ClCompile Include="ShaderProgram.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -55,11 +55,11 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="fragment.glsl">
+    <Text Include="fragment.glsl">
       <Filter>Resource Files</Filter>
-    </None>
-    <None Include="vertex.glsl">
+    </Text>
+    <Text Include="vertex.glsl">
       <Filter>Resource Files</Filter>
-    </None>
+    </Text>
   </ItemGroup>
 </Project>

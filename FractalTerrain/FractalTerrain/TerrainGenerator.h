@@ -11,10 +11,32 @@
 #include <GL\GL.h>
 
 /*
+The fractal terrain generator.
+At the moment is just a grid of points being drawn.
+No fractals to see here at the moment.
+*/
+class TerrainGenerator
+{
+private:
+	ShaderProgram *shaderProgram;
+	GLuint vaoid, vboid, worldxLoc, projLoc;
+	int size, length;
+
+	float *heights;
+	float *points;
+
+public:
+	TerrainGenerator(ShaderProgram* = 0, int = 2);
+	~TerrainGenerator();
+
+	void draw(float *, float *);
+};
+
+/*
 All the fractal calculations are done in here.
 
 The three static consts at the beginning control how things are calculated.
-*/
+
 class TerrainGenerator
 {
 public:
@@ -59,5 +81,6 @@ private:
 
 	void updateVao(void);
 };
+*/
 
 #endif

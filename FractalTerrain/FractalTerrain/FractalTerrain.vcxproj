@@ -86,7 +86,7 @@ copy "$(SolutionDir)\library" "$(OutDir)"</Command>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
-    <ClCompile Include="InitShader.cpp" />
+    <ClCompile Include="ShaderProgram.cpp" />
     <ClCompile Include="Keyboard.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="TerrainGenerator.cpp" />
@@ -101,8 +101,12 @@ copy "$(SolutionDir)\library" "$(OutDir)"</Command>
     <ClInclude Include="Vector.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="fragment.glsl" />
-    <None Include="vertex.glsl" />
+    <Text Include="fragment.glsl">
+      <FileType>Document</FileType>
+    </Text>
+    <Text Include="vertex.glsl">
+      <FileType>Document</FileType>
+    </Text>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

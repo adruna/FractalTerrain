@@ -1,5 +1,75 @@
 #include "TerrainGenerator.h"
 
+/*
+Creates the terrain generator and anything needed to draw it (buffers).
+Requires a shader to use and the power to use. (2^power + 1) vertices.
+*/
+TerrainGenerator::TerrainGenerator(ShaderProgram* program, int power)
+{
+	length = pow(2.0f, power) + 1;
+	size = length * length;
+
+	heights = new float[size];
+	points = new float[size * 4];
+
+	int halfLength = length / 2;
+
+	for (int i = 0; i < length; i++)
+	{
+		for (int j = 0; j < length; j++)
+		{
+			int v = (i*length + j) * 4;
+
+			points[v] = i - halfLength;
+			points[v + 1] = heights[i*length + j] = 0;
+			points[v + 2] = j - halfLength;
+			points[v + 3] = 1;
+		}
+	}
+
+	shaderProgram = program;
+
+	worldxLoc = glGetUniformLocation(shaderProgram->programID, "world");
+	projLoc = glGetUniformLocation(shaderProgram->programID, "proj");
+
+	glGenVertexArrays(1, &vaoid);
+	glBindVertexArray(vaoid);
+
+	glGenBuffers(1, &vboid);
+	glBindBuffer(GL_ARRAY_BUFFER, vboid);
+	glBufferData(GL_ARRAY_BUFFER, size*sizeof(float)*4 -1, points, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(0);
+}
+
+/*
+Cleans up buffers.
+*/
+TerrainGenerator::~TerrainGenerator()
+{
+	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glDeleteBuffers(1, &vboid);
+
+	glBindVertexArray(0);
+	glDeleteVertexArrays(1, &vaoid);
+}
+
+/*
+Draws the terrain.
+Takes a world matrix and projection matrix to use in drawing.
+*/
+void TerrainGenerator::draw(float *worldMat, float *projMat)
+{
+	glUniformMatrix4fv(worldxLoc, 1, false, worldMat);
+	glUniformMatrix4fv(projLoc, 1, false, projMat);
+	
+	glDrawArrays(GL_POLYGON, 0, size);
+}
+
+/*
 TerrainGenerator::TerrainGenerator()
 { }
 
@@ -183,15 +253,6 @@ float lerp(float tMax, float tMin, float t, float min, float max)
 // Draws the grid using the points[][] array as the y values
 void TerrainGenerator::drawTerrain()
 {
-	/*
-	glUseProgram(program);
-	glBindBuffer(GL_ARRAY_BUFFER, myBuffer);
-
-	glColor3f(1, 1, 1);
-	glDrawArrays(GL_LINE_STRIP, 0, GRID_SIZE * GRID_SIZE);
-	//glDrawArrays(GL_POLYGON, 0, GRID_SIZE * GRID_SIZE);
-	return;
-	*/
 	int halfSize = GRID_SIZE/2;
 	float y;
 
@@ -304,3 +365,4 @@ void TerrainGenerator::drawNextPoints()
 	glColor3f(1,1,1);
 	
 }
+*/
