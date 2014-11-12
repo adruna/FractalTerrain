@@ -6,13 +6,13 @@ Requires a shader to use and the power to use. (2^power + 1) vertices.
 */
 TerrainGenerator::TerrainGenerator(ShaderProgram* program, int power)
 {
-	length = pow(2.0f, power) + 1;
+	length = (int)pow(2.0f, power) + 1;
 	size = length * length;
 
 	heights = new float[size];
 	points = new float[size * 4];
 
-	int halfLength = length / 2;
+	float halfLength = length / 2.0f;
 
 	for (int i = 0; i < length; i++)
 	{
@@ -66,7 +66,8 @@ void TerrainGenerator::draw(float *worldMat, float *projMat)
 	glUniformMatrix4fv(worldxLoc, 1, false, worldMat);
 	glUniformMatrix4fv(projLoc, 1, false, projMat);
 	
-	glDrawArrays(GL_POLYGON, 0, size);
+	// Minus 1 because 0 indexing, last vertex will be nonsense if we use it (generally the center of the screen somehow..).
+	glDrawArrays(GL_POLYGON, 0, size - 1);
 }
 
 /*

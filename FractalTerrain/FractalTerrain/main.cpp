@@ -13,7 +13,6 @@ This value will be passed to the terrain generator and used as the n value.
 
 using namespace std;
 
-
 Camera *camera;
 TerrainGenerator *terrain;
 GLFWwindow *window;
@@ -107,8 +106,10 @@ void init(GLFWwindow *window)
 
 	camera = new Camera();
 	terrain = new TerrainGenerator(shaderProgram, TERRAIN_EXPONENT);
-
-	reshape(window, 800, 800);
+	
+	int width, height;
+	glfwGetWindowSize(window, &width, &height);
+	reshape(window, width, height);
 }
 
 /*
