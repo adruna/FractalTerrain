@@ -25,11 +25,14 @@ private:
 	float *heights;
 	float *points;
 
+	void updateBuffers(void);
+
 public:
 	TerrainGenerator(ShaderProgram* = 0, int = 2);
 	~TerrainGenerator();
 
 	void draw(float *, float *);
+	void finish(void);
 };
 
 /*

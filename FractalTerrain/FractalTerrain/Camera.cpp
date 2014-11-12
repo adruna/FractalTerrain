@@ -4,9 +4,10 @@
 Camera *Camera::current;
 
 /* Constructor! */
-Camera::Camera()
+Camera::Camera(float *deltaTime)
 {
 	current = this;
+	dt = deltaTime;
 
 	forward.z = 1;
 	position.y = 0;
@@ -79,8 +80,8 @@ void Camera::init()
 	addKeyHandler(moveUpCallback, GLFW_KEY_LEFT_CONTROL, DOWNHELD); // Dosnt work
 
 	// Also not working.
-	addKeyHandler(boostCallback, GLFW_KEY_LEFT_SHIFT, UP);
-	addKeyHandler(slowCallback, GLFW_KEY_RIGHT_SHIFT, UP);
+	addKeyHandler(boostCallback, 'B', UP);
+	addKeyHandler(slowCallback, 'N', UP);
 }
 
 #pragma region Keyboard Callbacks
@@ -120,27 +121,27 @@ void Camera::slowCallback(int key, KeyState)
 // The actual member functions, THEY DONT USE DT ANYMORE!!(bad)
 /* Moves the camera along its forward vector. */
 void Camera::moveForward()
-{ position += forward * (speed); }
+{ position += forward * (*dt) * (speed); }
 
 /* Moves the camera along its forward vector a negative amount. */
 void Camera::moveBack()
-{ position -= forward * (speed); }
+{ position -= forward * (*dt) * (speed); }
 
 /* Moves the camera along its right vector. */
 void Camera::moveRight()
-{ position -= right * (speed); }
+{ position -= right * (*dt) * (speed); }
 
 /* Moves the camera along its right vector a negative amount. */
 void Camera::moveLeft()
-{ position += right * (speed); }
+{ position += right * (*dt) * (speed); }
 
 /* Moves the camera along its up vector. */
 void Camera::moveUp()
-{ position += up * (speed); }
+{ position += up * (*dt) * (speed); }
 
 /* Moves the camera along its up vector a negative amount. */
 void Camera::moveDown()
-{ position -= up * (speed); }
+{ position -= up * (*dt) * (speed); }
 
 /* Increases the current speed of the camera by 5. */
 void Camera::boost()

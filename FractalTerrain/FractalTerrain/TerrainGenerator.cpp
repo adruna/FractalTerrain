@@ -12,20 +12,7 @@ TerrainGenerator::TerrainGenerator(ShaderProgram* program, int power)
 	heights = new float[size];
 	points = new float[size * 4];
 
-	float halfLength = length / 2.0f;
-
-	for (int i = 0; i < length; i++)
-	{
-		for (int j = 0; j < length; j++)
-		{
-			int v = (i*length + j) * 4;
-
-			points[v] = i - halfLength;
-			points[v + 1] = heights[i*length + j] = 0;
-			points[v + 2] = j - halfLength;
-			points[v + 3] = 1;
-		}
-	}
+	memset(heights, 0, size*sizeof(float));
 
 	shaderProgram = program;
 
@@ -36,10 +23,36 @@ TerrainGenerator::TerrainGenerator(ShaderProgram* program, int power)
 	glBindVertexArray(vaoid);
 
 	glGenBuffers(1, &vboid);
-	glBindBuffer(GL_ARRAY_BUFFER, vboid);
-	glBufferData(GL_ARRAY_BUFFER, size*sizeof(float)*4 -1, points, GL_STATIC_DRAW);
+
+	updateBuffers();
+
 	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(0);
+}
+
+/*
+Updates the points array and the gpu buffer.
+*/
+void TerrainGenerator::updateBuffers()
+{
+	float halfLength = length / 2.0f;
+
+	for (int i = 0; i < length; i++)
+	{
+		for (int j = 0; j < length; j++)
+		{
+			int v = (i*length + j) * 4;
+
+			points[v] = i - halfLength;
+			points[v + 1] = heights[i*length + j];
+			points[v + 2] = j - halfLength;
+			points[v + 3] = 1;
+		}
+	}
+
+
+	glBindBuffer(GL_ARRAY_BUFFER, vboid);
+	glBufferData(GL_ARRAY_BUFFER, size*sizeof(float) * 4 - 1, points, GL_DYNAMIC_DRAW);
 }
 
 /*
@@ -67,7 +80,21 @@ void TerrainGenerator::draw(float *worldMat, float *projMat)
 	glUniformMatrix4fv(projLoc, 1, false, projMat);
 	
 	// Minus 1 because 0 indexing, last vertex will be nonsense if we use it (generally the center of the screen somehow..).
-	glDrawArrays(GL_POLYGON, 0, size - 1);
+	glDrawArrays(GL_LINE_STRIP, 0, size - 1);
+}
+
+/*
+Complete terrain calculations.
+Right now just randomizes between 0-5.
+*/
+void TerrainGenerator::finish()
+{
+	float rmax = (float)RAND_MAX;
+
+	for (size_t i = 0; i < size; i++)
+	{ heights[i] += (float)rand() / rmax * 5.0f; }
+
+	updateBuffers();
 }
 
 /*

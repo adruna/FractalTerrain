@@ -20,6 +20,7 @@ private:
 	static Camera *current;
 	
 	bool boosted;
+	float *dt;
 	float speed;
 	Vector2 sphericalAngles, center;
 	Vector3 forward, up, right, position;
@@ -48,7 +49,7 @@ private:
 public:
 	bool captureMouse;
 
-	Camera();
+	Camera(float *);
 
 	void reshapeFunc(int x, int y);
 	void mouseMoved(int x, int y);

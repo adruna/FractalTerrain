@@ -9,7 +9,7 @@ Terrain is defined by a square array of dimension (2^n + 1)^2
 This value will be passed to the terrain generator and used as the n value. 
 (1-> 3x3, 2-> 5x5, 10-> 1025x1025) 
 */
-#define TERRAIN_EXPONENT 9
+#define TERRAIN_EXPONENT 11
 
 using namespace std;
 
@@ -20,6 +20,9 @@ ShaderProgram* shaderProgram;
 
 float world[16];
 float proj[16];
+
+float dt;
+double currentTime;
 
 /*
 Draw scene.
@@ -83,6 +86,12 @@ void errorCallback(int error , const char* description)
 { fprintf(stderr, description); }
 
 /*
+Complete terrain calculations.
+*/
+void finish(int no, KeyState dontcare)
+{ terrain->finish(); }
+
+/*
 Initialize glfw callbacks, keyboard callbacks.
 Create shaders, camera, and terrain.
 */
@@ -98,13 +107,14 @@ void init(GLFWwindow *window)
 
 	// Add keyboard callbacks.
 	addKeyHandler(toggleCameraLookAt, 'M', UP);
+	addKeyHandler(finish, 'I', UP);
 	Camera::init();
 
 	// Create the shader program and use it. (USING IT is causing some error). // hi brian
 	shaderProgram = new ShaderProgram("vertex.glsl", "fragment.glsl");
 	glUseProgram(shaderProgram->programID);
 
-	camera = new Camera();
+	camera = new Camera(&dt);
 	terrain = new TerrainGenerator(shaderProgram, TERRAIN_EXPONENT);
 	
 	int width, height;
@@ -148,6 +158,10 @@ int main(int argc, char** argv)
 	// Main loop.
 	while (!glfwWindowShouldClose(window))
 	{
+		double now = glfwGetTime();
+		dt = now - currentTime;
+		currentTime = now;
+
 		display();
 		glfwPollEvents();
 	}
