@@ -1,43 +1,16 @@
 #include "TerrainGenerator.h"
 
-/*
-Creates the terrain generator and anything needed to draw it (buffers).
-Requires a shader to use and the power to use. (2^power + 1) vertices.
-*/
-TerrainGenerator::TerrainGenerator(ShaderProgram* program, int power)
-{
-	length = (int)pow(2.0f, power) + 1;
-	size = length * length;
-
-	heights = new float[size];
-	points = new float[size * 4];
-
-	memset(heights, 0, size*sizeof(float));
-
-	shaderProgram = program;
-
-	worldxLoc = glGetUniformLocation(shaderProgram->programID, "world");
-	projLoc = glGetUniformLocation(shaderProgram->programID, "proj");
-
-	glGenVertexArrays(1, &vaoid);
-	glBindVertexArray(vaoid);
-
-	glGenBuffers(1, &vboid);
-
-	updateBuffers();
-
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(0);
-}
+#pragma region Helpers
 
 /*
-Updates the points array and the gpu buffer.
+Takes the vbo to update, the array of points to give it, and the heights to update those points with.
+Also need size and length of the heights array.
 */
-void TerrainGenerator::updateBuffers()
+void updateVertexBuffers(GLuint vboid, float *points, float *heights, int size, int length)
 {
 	float halfLength = length / 2.0f;
 
-	for (int i = 0; i < length; i++)
+	for (int i = 0; i < length - 1; i++)
 	{
 		for (int j = 0; j < length; j++)
 		{
@@ -49,10 +22,89 @@ void TerrainGenerator::updateBuffers()
 			points[v + 3] = 1;
 		}
 	}
+}
 
+/*
+Calculates the index buffer array for a the terrain.
+Need a pointer to the array to store into, length of a side, and number of indices in the array.
+*/
+void initIndexBuffer(GLuint *indexData, int length)
+{
+	// Uncomment if need everything starting at zero.
+	//memset(indexData, 0, indices*sizeof(GLuint));
 
+	int index = 0;
+	int vert = 0;
+	for (size_t i = 0; i < length - 2; i++)
+	{
+		for (size_t j = 0; j < length - 1; j++)
+		{
+			indexData[index] = vert;
+			indexData[index + 1] = vert + 1;
+			indexData[index + 2] = vert + length;
+
+			indexData[index + 3] = vert + 1;
+			indexData[index + 4] = vert + length;
+			indexData[index + 5] = vert + 1 + length;
+			vert += 1;
+			index += 6;
+		}
+		vert += 1;
+	}
+}
+
+#pragma endregion
+
+/*
+Creates the terrain generator and anything needed to draw it (buffers).
+Requires a shader to use and the power to use. (2^power + 1) vertices.
+*/
+TerrainGenerator::TerrainGenerator(ShaderProgram* program, int power)
+{
+	shaderProgram = program;
+
+	// 2^(power) vertices on each side of the square. (regretable cast but oh well, only on creation).
+	length = (int)pow(2.0f, power) + 1;
+
+	// Total number of vertices
+	size = length * length;
+
+	// Total number of indices needed to draw
+	indices = (length - 1) * (length - 2) * 6;
+
+	// Allocate array data. Indexdata pointer is local because we don't need to keep that around on the cpu.
+	heights = new float[size];
+	points = new float[size * 4];
+	GLuint *indexData = new GLuint[indices];
+	memset(heights, 0, size*sizeof(float));
+
+	// Get world and projection uniforms.
+	worldxLoc = glGetUniformLocation(shaderProgram->programID, "world");
+	projLoc = glGetUniformLocation(shaderProgram->programID, "proj");
+
+	// Create Vertex Array.
+	glGenVertexArrays(1, &vaoid);
+	glBindVertexArray(vaoid);
+
+	// Create the Vertex Buffer Object for the Vertex Array.
+	// Potentialy chnge this to GL_STATIC_DRAW, if continuing with the visualization stuff.
+	glGenBuffers(1, &vboid);
+	updateVertexBuffers(vboid, points, heights, size, length);
 	glBindBuffer(GL_ARRAY_BUFFER, vboid);
-	glBufferData(GL_ARRAY_BUFFER, size*sizeof(float) * 4 - 1, points, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, size*sizeof(float) * 4, points, GL_STATIC_DRAW);
+
+	// Create the Index Buffer for the Vertex Array.
+	glGenBuffers(1, &iboid);
+	initIndexBuffer(indexData, length);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboid);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices*sizeof(GLuint), indexData, GL_STATIC_DRAW);
+	
+	// Specify vertex components and enable.
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(0);
+
+	// Clean up index data because we wont be needing to change this.
+	delete indexData;
 }
 
 /*
@@ -65,6 +117,9 @@ TerrainGenerator::~TerrainGenerator()
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glDeleteBuffers(1, &vboid);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glDeleteBuffers(1, &iboid);
 
 	glBindVertexArray(0);
 	glDeleteVertexArrays(1, &vaoid);
@@ -79,8 +134,10 @@ void TerrainGenerator::draw(float *worldMat, float *projMat)
 	glUniformMatrix4fv(worldxLoc, 1, false, worldMat);
 	glUniformMatrix4fv(projLoc, 1, false, projMat);
 	
-	// Minus 1 because 0 indexing, last vertex will be nonsense if we use it (generally the center of the screen somehow..).
-	glDrawArrays(GL_LINE_STRIP, 0, size - 1);
+	glDrawElements(GL_TRIANGLES, indices, GL_UNSIGNED_INT, NULL);
+
+	// Uncomment to draw the individual points.
+	//glDrawArrays(GL_POINTS, 0, size);
 }
 
 /*
@@ -92,9 +149,13 @@ void TerrainGenerator::finish()
 	float rmax = (float)RAND_MAX;
 
 	for (size_t i = 0; i < size; i++)
-	{ heights[i] += (float)rand() / rmax * 5.0f; }
+	{ heights[i] += (float)rand() / rmax * 1.0f; }
 
-	updateBuffers();
+	// Update, and re-assign buffer data.
+	updateVertexBuffers(vboid, points, heights, size, length);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vboid);
+	glBufferData(GL_ARRAY_BUFFER, size*sizeof(float) * 4, points, GL_STATIC_DRAW);
 }
 
 /*

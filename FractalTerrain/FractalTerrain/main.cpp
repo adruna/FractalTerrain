@@ -9,7 +9,7 @@ Terrain is defined by a square array of dimension (2^n + 1)^2
 This value will be passed to the terrain generator and used as the n value. 
 (1-> 3x3, 2-> 5x5, 10-> 1025x1025) 
 */
-#define TERRAIN_EXPONENT 11
+#define TERRAIN_EXPONENT 10
 
 using namespace std;
 
@@ -21,6 +21,9 @@ ShaderProgram* shaderProgram;
 float world[16];
 float proj[16];
 
+float *w;
+float *p;
+
 float dt;
 double currentTime;
 
@@ -31,7 +34,6 @@ void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glGetFloatv(GL_MODELVIEW_MATRIX, world);
-	glGetFloatv(GL_PROJECTION_MATRIX, proj);
 	
 	glLoadIdentity();
 	camera->applyViewingTransformations();
@@ -54,7 +56,8 @@ void reshape(GLFWwindow *window, int w, int h)
    
 	glMatrixMode(GL_MODELVIEW); 
 	glLoadIdentity();
-	camera->reshapeFunc(w,h);
+	camera->reshapeFunc(w, h);
+	glGetFloatv(GL_PROJECTION_MATRIX, proj);
 }
 
 #pragma region Camera Callbacks

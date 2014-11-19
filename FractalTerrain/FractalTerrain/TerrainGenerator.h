@@ -19,13 +19,11 @@ class TerrainGenerator
 {
 private:
 	ShaderProgram *shaderProgram;
-	GLuint vaoid, vboid, worldxLoc, projLoc;
-	int size, length;
+	GLuint vaoid, vboid, iboid, worldxLoc, projLoc;
+	int size, length, indices;
 
 	float *heights;
 	float *points;
-
-	void updateBuffers(void);
 
 public:
 	TerrainGenerator(ShaderProgram* = 0, int = 2);
