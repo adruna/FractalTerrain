@@ -1,4 +1,8 @@
 #include "Keyboard.h"
+#include "KeyboardHandler.h"
+
+#include <map>
+#include <list>
 
 /*
 Structure that holds a function to call and the key state in which to call it for.

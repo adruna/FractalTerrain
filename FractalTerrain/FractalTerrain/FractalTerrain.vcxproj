@@ -97,6 +97,7 @@ copy "$(SolutionDir)\library" "$(OutDir)"</Command>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="GlobalValues.h" />
     <ClInclude Include="Keyboard.h" />
+    <ClInclude Include="KeyboardHandler.h" />
     <ClInclude Include="TerrainGenerator.h" />
     <ClInclude Include="Vector.h" />
   </ItemGroup>

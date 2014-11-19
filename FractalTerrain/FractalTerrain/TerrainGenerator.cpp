@@ -1,5 +1,12 @@
 #include "TerrainGenerator.h"
 
+#include <Windows.h>
+#include <math.h>
+#include <cstdio>
+
+#include <GL\glew.h>
+#include <GL\GL.h>
+
 #pragma region Helpers
 
 /*
@@ -28,16 +35,20 @@ void updateVertexBuffers(GLuint vboid, float *points, float *heights, int size, 
 Calculates the index buffer array for a the terrain.
 Need a pointer to the array to store into, length of a side, and number of indices in the array.
 */
-void initIndexBuffer(GLuint *indexData, int length)
+void initIndexBuffer(GLuint *indexData, unsigned int length)
 {
 	// Uncomment if need everything starting at zero.
 	//memset(indexData, 0, indices*sizeof(GLuint));
 
 	int index = 0;
 	int vert = 0;
-	for (size_t i = 0; i < length - 2; i++)
+
+	unsigned int iLength = length - 2;
+	unsigned int jLength = length - 1;
+
+	for (unsigned int i = 0; i < iLength; i++)
 	{
-		for (size_t j = 0; j < length - 1; j++)
+		for (unsigned int j = 0; j < jLength; j++)
 		{
 			indexData[index] = vert;
 			indexData[index + 1] = vert + 1;
@@ -148,7 +159,7 @@ void TerrainGenerator::finish()
 {
 	float rmax = (float)RAND_MAX;
 
-	for (size_t i = 0; i < size; i++)
+	for (unsigned int i = 0; i < size; i++)
 	{ heights[i] += (float)rand() / rmax * 1.0f; }
 
 	// Update, and re-assign buffer data.

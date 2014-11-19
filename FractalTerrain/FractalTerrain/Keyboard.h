@@ -1,10 +1,6 @@
 #ifndef KEYBOARD_H
 #define KEYBOARD_H
 
-#include <map>
-#include <list>
-#include <GL\glfw3.h>
-
 enum KeyState
 {
 	DOWN,
@@ -14,7 +10,6 @@ enum KeyState
 	ALL
 };
 
-void keyboardGLFWHandler(GLFWwindow *, int, int, int, int);
 void keyboardUpdate(void);
 void addKeyHandler(void(*)(int, KeyState), int, KeyState);
 

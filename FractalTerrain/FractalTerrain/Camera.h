@@ -3,11 +3,6 @@
 
 #include "Keyboard.h"
 #include "Vector.h"
-#include "GlobalValues.h"
-
-#include <math.h>
-#include <Windows.h>
-#include <GL\GLU.h>
 
 /*
 This class is used to control where the "camera" is.
@@ -51,8 +46,8 @@ public:
 
 	Camera(float *);
 
-	void reshapeFunc(int x, int y);
-	void mouseMoved(int x, int y);
+	void reshapeFunc(float x, float y);
+	void mouseMoved(float x, float y);
 	void applyViewingTransformations();
 
 	static void init();

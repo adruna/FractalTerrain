@@ -1,5 +1,10 @@
 #include "Camera.h"
-#include <GL\glfw3.h>
+
+#include "GlobalValues.h"
+
+#include <math.h>
+#include <Windows.h>
+#include <GL\GLU.h>
 
 Camera *Camera::current;
 
@@ -44,15 +49,15 @@ void Camera::updateVectors()
 }
 
 /* Handles mouse input for changing the camera's direction. */
-void Camera::mouseMoved(int x, int y)
+void Camera::mouseMoved(float x, float y)
 {
 	if (captureMouse)
 	{
 		if (x == center[0] && y == center[1])
 			return;
 
-		int dx = (int)center[0] - x;
-		int dy = y - (int)center[1];
+		float dx = center[0] - x;
+		float dy = y - center[1];
 
 		sphericalAngles[0] += dx / 250.0f;
 		sphericalAngles[1] += dy / 250.0f;
@@ -62,10 +67,10 @@ void Camera::mouseMoved(int x, int y)
 }
 
 /* Sets the centers for the mouse calculations. */
-void Camera::reshapeFunc(int x, int y)
+void Camera::reshapeFunc(float width, float height)
 {
-	center.x = (float)(x >> 1);
-	center.y = (float)(y >> 1);
+	center.x = width / 2.0f;
+	center.y = height / 2.0f;
 }
 
 /* Initilizes camera usage. Applies some keyboard handlers that then call functions in Camera::current. */
@@ -76,8 +81,8 @@ void Camera::init()
 	addKeyHandler(moveRightCallback, 'D', DOWNHELD);
 	addKeyHandler(moveLeftCallback, 'A', DOWNHELD);
 
-	addKeyHandler(moveUpCallback, GLFW_KEY_SPACE, DOWNHELD);
-	addKeyHandler(moveUpCallback, GLFW_KEY_LEFT_CONTROL, DOWNHELD); // Dosnt work
+	addKeyHandler(moveUpCallback, ' ', DOWNHELD);
+	//addKeyHandler(moveUpCallback, GLFW_KEY_LEFT_CONTROL, DOWNHELD); // Dosnt work
 
 	// Also not working.
 	addKeyHandler(boostCallback, 'B', UP);

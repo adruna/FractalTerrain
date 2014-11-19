@@ -1,8 +1,10 @@
-#include "GlobalValues.h"
+#include <Windows.h>
+#include <cstdio>
 #include <GL\glew.h>
-#include <GL\glfw3.h>
+
 #include "TerrainGenerator.h"
 #include "Camera.h"
+#include "KeyboardHandler.h"
 
 /*
 Terrain is defined by a square array of dimension (2^n + 1)^2
@@ -27,6 +29,8 @@ float *p;
 float dt;
 double currentTime;
 
+float windowWidth, windowHeight;
+
 /*
 Draw scene.
 */
@@ -47,16 +51,19 @@ void display()
 Recalculate viewport and perspective on window resizing.
 Update camera.
 */
-void reshape(GLFWwindow *window, int w, int h)
+void reshape(GLFWwindow *window, int width, int height)
 {
-	glViewport(0, 0, (GLsizei) w, (GLsizei) h); 
+	windowWidth = (float)width;
+	windowHeight = (float)height;
+
+	glViewport(0, 0, width, height);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(60.0, (GLfloat) w/(GLfloat) h, 1.0, 10000.0);     
+	gluPerspective(60.0, windowWidth / windowHeight, 1.0, 10000.0);
    
 	glMatrixMode(GL_MODELVIEW); 
 	glLoadIdentity();
-	camera->reshapeFunc(w, h);
+	camera->reshapeFunc(windowWidth, windowHeight);
 	glGetFloatv(GL_PROJECTION_MATRIX, proj);
 }
 
@@ -67,9 +74,9 @@ Update the camera when the mouse is moved.
 */
 void mouseCallback(GLFWwindow *window, double x, double y)
 {
-	camera->mouseMoved(x, y);
+	camera->mouseMoved((float)x, (float)y);
 	if (camera->captureMouse)
-	{ glfwSetCursorPos(window, 400, 400); }
+	{ glfwSetCursorPos(window, windowWidth/2.0f, windowHeight/2.0f); }
 }
 
 /*
@@ -162,7 +169,7 @@ int main(int argc, char** argv)
 	while (!glfwWindowShouldClose(window))
 	{
 		double now = glfwGetTime();
-		dt = now - currentTime;
+		dt = (float)(now - currentTime);
 		currentTime = now;
 
 		display();

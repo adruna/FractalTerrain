@@ -1,14 +1,7 @@
 #ifndef TERRAIN_GENERATOR_H
 #define TERRAIN_GENERATOR_H
 
-#include "Vector.h"
 #include "GlobalValues.h"
-#include <Windows.h>
-#include <math.h>
-#include <cstdio>
-
-#include <GL\glew.h>
-#include <GL\GL.h>
 
 /*
 The fractal terrain generator.
@@ -19,8 +12,8 @@ class TerrainGenerator
 {
 private:
 	ShaderProgram *shaderProgram;
-	GLuint vaoid, vboid, iboid, worldxLoc, projLoc;
-	int size, length, indices;
+	unsigned int vaoid, vboid, iboid, worldxLoc, projLoc;
+	unsigned int size, length, indices;
 
 	float *heights;
 	float *points;
