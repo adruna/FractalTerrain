@@ -12,8 +12,8 @@ class TerrainGenerator
 {
 private:
 	ShaderProgram *shaderProgram;
-	unsigned int vaoid, vboid, iboid, worldxLoc, projLoc;
-	unsigned int size, length, indices;
+	unsigned int vaoid, vboid, iboid, worldxLoc, projLoc, size, length, indices;
+	unsigned int iteration, stride;
 
 	float *heights;
 	float *points;
@@ -23,6 +23,7 @@ public:
 	~TerrainGenerator();
 
 	void draw(float *, float *);
+	void iterate(bool = false);
 	void finish(void);
 };
 

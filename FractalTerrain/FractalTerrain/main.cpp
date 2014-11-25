@@ -11,7 +11,7 @@ Terrain is defined by a square array of dimension (2^n + 1)^2
 This value will be passed to the terrain generator and used as the n value. 
 (1-> 3x3, 2-> 5x5, 10-> 1025x1025) 
 */
-#define TERRAIN_EXPONENT 10
+#define TERRAIN_EXPONENT 5
 
 using namespace std;
 
@@ -96,6 +96,12 @@ void errorCallback(int error , const char* description)
 { fprintf(stderr, description); }
 
 /*
+Do one iteration of the terrain calculations.
+*/
+void iterate(int no, KeyState dontcare)
+{ terrain->iterate(); }
+
+/*
 Complete terrain calculations.
 */
 void finish(int no, KeyState dontcare)
@@ -117,8 +123,12 @@ void init(GLFWwindow *window)
 
 	// Add keyboard callbacks.
 	addKeyHandler(toggleCameraLookAt, 'M', UP);
-	addKeyHandler(finish, 'I', UP);
+	addKeyHandler(finish, 'F', UP);
+	addKeyHandler(iterate, 'I', UP);
 	Camera::init();
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
 
 	// Create the shader program and use it. (USING IT is causing some error). // hi brian
 	shaderProgram = new ShaderProgram("vertex.glsl", "fragment.glsl");
