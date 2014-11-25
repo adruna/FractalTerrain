@@ -9,9 +9,10 @@
 /*
 Terrain is defined by a square array of dimension (2^n + 1)^2
 This value will be passed to the terrain generator and used as the n value. 
-(1-> 3x3, 2-> 5x5, 10-> 1025x1025) 
+(1-> 3x3, 2-> 5x5, 10-> 1025x1025)
+Note, 12 seems to be the highest we can fit into an array at the moment, (make points array [size][3]?).
 */
-#define TERRAIN_EXPONENT 5
+#define TERRAIN_EXPONENT 8
 
 using namespace std;
 
@@ -89,23 +90,32 @@ void toggleCameraLookAt(int key, KeyState state)
 }
 #pragma endregion
 
+#pragma region Terrain Callbacks
+
+/*
+Do one iteration of the terrain calculations.
+*/
+void iterate(int no, KeyState dontcare)
+{
+	terrain->iterate();
+}
+
+/*
+Complete terrain calculations.
+*/
+void finish(int no, KeyState dontcare)
+{
+	terrain->finish();
+}
+
+#pragma endregion
+
 /*
 Print out any errors that occur.
 */
 void errorCallback(int error , const char* description)
 { fprintf(stderr, description); }
 
-/*
-Do one iteration of the terrain calculations.
-*/
-void iterate(int no, KeyState dontcare)
-{ terrain->iterate(); }
-
-/*
-Complete terrain calculations.
-*/
-void finish(int no, KeyState dontcare)
-{ terrain->finish(); }
 
 /*
 Initialize glfw callbacks, keyboard callbacks.

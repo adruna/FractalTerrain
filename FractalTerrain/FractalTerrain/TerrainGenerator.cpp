@@ -12,6 +12,7 @@
 /*
 Takes the vbo to update, the array of points to give it, and the heights to update those points with.
 Also need size and length of the heights array.
+I might take binding buffer data out of these later.
 */
 void updateVertexBuffers(GLuint vboid, float *points, float *heights, int size, int length)
 {
@@ -37,6 +38,7 @@ void updateVertexBuffers(GLuint vboid, float *points, float *heights, int size, 
 /*
 Calculates the index buffer array for a the terrain.
 Need a pointer to the array to store into, length of a side, and number of indices in the array.
+I might take binding buffer data out of these later.
 */
 void initIndexBuffer(GLuint iboid, int numIndicies, GLuint *indexData, unsigned int length)
 {
@@ -70,6 +72,14 @@ void initIndexBuffer(GLuint iboid, int numIndicies, GLuint *indexData, unsigned 
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndicies*sizeof(GLuint), indexData, GL_STATIC_DRAW);
 }
 
+/*
+Returns a random float between 0,1.
+(lots of float conversions and rand takes a looonng time).
+Inline this?
+*/
+float randf()
+{ return (float)rand() / (float)RAND_MAX; }
+
 #pragma endregion
 
 /*
@@ -93,11 +103,15 @@ TerrainGenerator::TerrainGenerator(ShaderProgram* program, int power)
 
 	// Allocate array data. Indexdata pointer is local because we don't need to keep that around on the cpu.
 	heights = new float[size];
-	points = new float[size * 4];
+	points = new float[size * 4]; // This can get quite large..
 	GLuint *indexData = new GLuint[indices];
 	memset(heights, 0, size*sizeof(float));
-	heights[0] = 1;
-	heights[size-1] = 2;
+
+	// Set initial corner values.
+	heights[0] = randf() * (float)stride - (float)stride / 2.0f;
+	heights[length - 1] = randf() * (float)stride - (float)stride / 2.0f;
+	heights[size - length] = randf() * (float)stride - (float)stride / 2.0f;
+	heights[size - 1] = randf() * (float)stride - (float)stride / 2.0f;
 
 	// Get world and projection uniforms.
 	worldxLoc = glGetUniformLocation(shaderProgram->programID, "world");
@@ -127,7 +141,7 @@ TerrainGenerator::TerrainGenerator(ShaderProgram* program, int power)
 }
 
 /*
-Cleans up buffers.
+Cleans up buffers and memory.
 */
 TerrainGenerator::~TerrainGenerator()
 {
@@ -145,7 +159,6 @@ TerrainGenerator::~TerrainGenerator()
 
 	glBindVertexArray(0);
 	glDeleteVertexArrays(1, &vaoid);
-
 }
 
 /*
@@ -157,8 +170,10 @@ void TerrainGenerator::draw(float *worldMat, float *projMat)
 	glUniformMatrix4fv(worldxLoc, 1, false, worldMat);
 	glUniformMatrix4fv(projLoc, 1, false, projMat);
 	
-	//glDrawElements(GL_TRIANGLES, indices, GL_UNSIGNED_INT, NULL);
 	glDrawElements(GL_TRIANGLES, indices, GL_UNSIGNED_INT, NULL);
+
+	// Uncomment to draw lines between all the points (makes them as if drawing triangles, so theres some extra lines going between the top/bottom)
+	//glDrawElements(GL_LINE_STRIP, indices, GL_UNSIGNED_INT, NULL);
 
 	// Uncomment to draw the individual points.
 	//glDrawArrays(GL_POINTS, 0, size);
@@ -166,6 +181,7 @@ void TerrainGenerator::draw(float *worldMat, float *projMat)
 
 /*
 Performs the square/diamond steps for this iteration.
+This is where a lot of stuff happens!
 */
 void TerrainGenerator::iterate(bool finishing)
 {
@@ -176,6 +192,7 @@ void TerrainGenerator::iterate(bool finishing)
 	int halfStride = stride >> 1;
 	int x = 0, y = 0;
 
+	// Square
 	for (x = 0; x < length - 1; x += stride)
 	{
 		for (y = 0; y < length - 1; y += stride)
@@ -188,7 +205,8 @@ void TerrainGenerator::iterate(bool finishing)
 			float tr = heights[topRight];			// Top Right.
 			float br = heights[topRight + stride];	// Bottom Right.
 			
-			heights[topLeft + halfStride*(length + 1)] = (tl + bl + tr + br) / 4.0f;
+			// center = avg of square around it + some random.
+			heights[topLeft + halfStride*(length + 1)] = (tl + bl + tr + br) / 4.0f + randf() * (float)halfStride - (float)halfStride / 2.0f;
 			//printf("Square : Loc (%i), tl: %f, bl: %f, tr: %f, br: %f\n", topLeft, tl, bl, tr, br);
 		}
 	}
@@ -205,14 +223,14 @@ void TerrainGenerator::iterate(bool finishing)
 			int left = top - halfStride * (int)length + halfStride;
 			int right = top + halfStride * (int)length + halfStride;
 
-			// More branching D:
+			// Quite a bit of branching.
 			float t = (y - offset >= 0) ? heights[top] : 0;			// Top.
 			float l = (x != 0) ? heights[left] : 0;					// Left.
 			float r = (x != length - 1) ? heights[right] : 0;		// Right.
 			float b = (y + offset < length) ? heights[bottom] : 0;	// Bottom.
 
-
-			heights[top + halfStride] = (t + l + r + b) / 4.0f;
+			// Center = avg diamond around it + some random.
+			heights[top + halfStride] = (t + l + r + b) / 4.0f + randf() * (float)halfStride - (float)halfStride/2.0f;
 			//printf("Diamond : Loc (%i), tl: %f, bl: %f, tr: %f, br: %f\n", top, t, l, r, b);
 		}
 	}
