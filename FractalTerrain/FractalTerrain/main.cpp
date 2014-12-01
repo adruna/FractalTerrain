@@ -96,17 +96,19 @@ void toggleCameraLookAt(int key, KeyState state)
 Do one iteration of the terrain calculations.
 */
 void iterate(int no, KeyState dontcare)
-{
-	terrain->iterate();
-}
+{ terrain->iterate(); }
 
 /*
 Complete terrain calculations.
 */
 void finish(int no, KeyState dontcare)
-{
-	terrain->finish();
-}
+{ terrain->finish(); }
+
+/*
+Reset terrain to 0 (with corners).
+*/
+void reset(int no, KeyState dontcare)
+{ terrain->reset(); }
 
 #pragma endregion
 
@@ -135,6 +137,7 @@ void init(GLFWwindow *window)
 	addKeyHandler(toggleCameraLookAt, 'M', UP);
 	addKeyHandler(finish, 'F', UP);
 	addKeyHandler(iterate, 'I', UP);
+	addKeyHandler(reset, 'R', UP);
 	Camera::init();
 
 	glEnable(GL_DEPTH_TEST);

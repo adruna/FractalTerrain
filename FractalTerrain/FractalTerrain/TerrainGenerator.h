@@ -22,6 +22,7 @@ public:
 	TerrainGenerator(ShaderProgram* = 0, int = 2);
 	~TerrainGenerator();
 
+	void reset(void);
 	void draw(float *, float *);
 	void iterate(bool = false);
 	void finish(void);

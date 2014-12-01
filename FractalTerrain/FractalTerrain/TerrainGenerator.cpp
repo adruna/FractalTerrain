@@ -3,6 +3,7 @@
 #include <Windows.h>
 #include <math.h>
 #include <cstdio>
+#include <time.h>
 
 #include <GL\glew.h>
 #include <GL\GL.h>
@@ -72,13 +73,26 @@ void initIndexBuffer(GLuint iboid, int numIndicies, GLuint *indexData, unsigned 
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndicies*sizeof(GLuint), indexData, GL_STATIC_DRAW);
 }
 
+static int next = (int)time(nullptr);
+static const int RANDF_MAX = (float)RAND_MAX;
+
 /*
 Returns a random float between 0,1.
 (lots of float conversions and rand takes a looonng time).
 Inline this?
 */
-float randf()
-{ return (float)rand() / (float)RAND_MAX; }
+inline float randf()
+{
+	/*
+	return (float)rand() / RANDF_MAX;
+	/*/
+	
+	next *= 0x343FD;
+	next += 0x269EC3;
+
+	return (float)((next >> 0x10) & RAND_MAX) / RANDF_MAX;
+	//*/
+}
 
 #pragma endregion
 
@@ -92,8 +106,7 @@ TerrainGenerator::TerrainGenerator(ShaderProgram* program, int power)
 	iteration = 0;
 
 	// 2^(power) vertices on each side of the square. (regretable cast but oh well, only on creation).
-	stride = length = (int)pow(2.0f, power) + 1;
-	stride -= 1;
+	length = (int)pow(2.0f, power) + 1;
 
 	// Total number of vertices
 	size = length * length;
@@ -105,14 +118,7 @@ TerrainGenerator::TerrainGenerator(ShaderProgram* program, int power)
 	heights = new float[size];
 	points = new float[size * 4]; // This can get quite large..
 	GLuint *indexData = new GLuint[indices];
-	memset(heights, 0, size*sizeof(float));
-
-	// Set initial corner values.
-	heights[0] = randf() * (float)stride - (float)stride / 2.0f;
-	heights[length - 1] = randf() * (float)stride - (float)stride / 2.0f;
-	heights[size - length] = randf() * (float)stride - (float)stride / 2.0f;
-	heights[size - 1] = randf() * (float)stride - (float)stride / 2.0f;
-
+	
 	// Get world and projection uniforms.
 	worldxLoc = glGetUniformLocation(shaderProgram->programID, "world");
 	projLoc = glGetUniformLocation(shaderProgram->programID, "proj");
@@ -124,8 +130,8 @@ TerrainGenerator::TerrainGenerator(ShaderProgram* program, int power)
 	// Create the Vertex Buffer Object for the Vertex Array.
 	// Potentialy chnge this to GL_STATIC_DRAW, if continuing with the visualization stuff.
 	glGenBuffers(1, &vboid);
-	updateVertexBuffers(vboid, points, heights, size, length);
-	// Binding taken care of in updateVertexBuffers
+	// Set heights to their intial values and bind buffer.
+	reset();
 
 	// Create the Index Buffer for the Vertex Array.
 	glGenBuffers(1, &iboid);
@@ -159,6 +165,27 @@ TerrainGenerator::~TerrainGenerator()
 
 	glBindVertexArray(0);
 	glDeleteVertexArrays(1, &vaoid);
+}
+
+/*
+Sets heights to their intial values and binds buffer.
+*/
+void TerrainGenerator::reset()
+{
+	// Clear to 0
+	memset(heights, 0, size*sizeof(float));
+
+	// Set initial corner values.
+	heights[0] = randf() * (float)stride - (float)stride / 2.0f;
+	heights[length - 1] = randf() * (float)stride - (float)stride / 2.0f;
+	heights[size - length] = randf() * (float)stride - (float)stride / 2.0f;
+	heights[size - 1] = randf() * (float)stride - (float)stride / 2.0f;
+
+	// Set stride.
+	stride = length - 1;
+
+	updateVertexBuffers(vboid, points, heights, size, length);
+	// Binding taken care of in updateVertexBuffers
 }
 
 /*
