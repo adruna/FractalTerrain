@@ -12,7 +12,7 @@ This value will be passed to the terrain generator and used as the n value.
 (1-> 3x3, 2-> 5x5, 10-> 1025x1025)
 Note, 12 seems to be the highest we can fit into an array at the moment, (make points array [size][3]?).
 */
-#define TERRAIN_EXPONENT 8
+#define TERRAIN_EXPONENT 12
 
 using namespace std;
 
@@ -188,8 +188,10 @@ int main(int argc, char** argv)
 
 	init(window);
 
+	finish(0, DOWN);
+
 	// Main loop.
-	while (!glfwWindowShouldClose(window))
+	//while (!glfwWindowShouldClose(window))
 	{
 		double now = glfwGetTime();
 		dt = (float)(now - currentTime);

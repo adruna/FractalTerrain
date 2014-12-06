@@ -16,6 +16,7 @@ private:
 	unsigned int iteration, stride;
 
 	float *heights;
+	float *rands;
 	float *points;
 
 public:

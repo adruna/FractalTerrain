@@ -7,6 +7,9 @@
 
 #include <GL\glew.h>
 #include <GL\GL.h>
+#include <ppl.h>
+
+using namespace Concurrency;
 
 #pragma region Helpers
 
@@ -74,7 +77,7 @@ void initIndexBuffer(GLuint iboid, int numIndicies, GLuint *indexData, unsigned 
 }
 
 static int next = (int)time(nullptr);
-static const int RANDF_MAX = (float)RAND_MAX;
+static const float RANDF_MAX = (float)RAND_MAX;
 
 /*
 Returns a random float between 0,1.
@@ -175,14 +178,15 @@ void TerrainGenerator::reset()
 	// Clear to 0
 	memset(heights, 0, size*sizeof(float));
 
+	// Set stride.
+	stride = length - 1;
+
 	// Set initial corner values.
 	heights[0] = randf() * (float)stride - (float)stride / 2.0f;
 	heights[length - 1] = randf() * (float)stride - (float)stride / 2.0f;
 	heights[size - length] = randf() * (float)stride - (float)stride / 2.0f;
 	heights[size - 1] = randf() * (float)stride - (float)stride / 2.0f;
 
-	// Set stride.
-	stride = length - 1;
 
 	updateVertexBuffers(vboid, points, heights, size, length);
 	// Binding taken care of in updateVertexBuffers
@@ -216,16 +220,18 @@ void TerrainGenerator::iterate(bool finishing)
 	if (!(stride-1))
 		return;
 
-	int halfStride = stride >> 1;
-	int x = 0, y = 0;
+	unsigned int halfStride = stride >> 1;
+	int halfStrideByLength = halfStride * length;
 
 	// Square
-	for (x = 0; x < length - 1; x += stride)
+	//parallel_for(size_t(0), (size_t)(length - 1), stride, [&](size_t x)
+	for (int x = 0; x < length - 1; x += stride)
 	{
-		for (y = 0; y < length - 1; y += stride)
+		for (int y = 0; y < (int)length - 1; y += stride)
 		{
 			int topLeft = x*length + y;
 			int topRight = topLeft + stride*length;
+			int center = topLeft + halfStride*(length + 1);
 
 			float tl = heights[topLeft];			// Top Left.
 			float bl = heights[topLeft + stride];	// Bottom Left.
@@ -233,34 +239,35 @@ void TerrainGenerator::iterate(bool finishing)
 			float br = heights[topRight + stride];	// Bottom Right.
 			
 			// center = avg of square around it + some random.
-			heights[topLeft + halfStride*(length + 1)] = (tl + bl + tr + br) / 4.0f + randf() * (float)halfStride - (float)halfStride / 2.0f;
-			//printf("Square : Loc (%i), tl: %f, bl: %f, tr: %f, br: %f\n", topLeft, tl, bl, tr, br);
+			heights[center] = (tl + bl + tr + br) / 4.0f + randf() * (float)halfStride - (float)halfStride / 2.0f;
 		}
-	}
-	
-	for (x = 0; x < length; x+=halfStride)
+	}//);
+
+	//parallel_for(size_t(0), length, (unsigned int)halfStride, [&](size_t x)
+	for (int x = 0; x < length; x+=halfStride)
 	{
 		int offset = ((x / halfStride) & (0x1))*halfStride;
 		// 0, halfstride, 0, halfstride.
 
-		for (y = 0; y - offset < (int)(length - 1); y+=stride)
+		for (int y = 0; y - offset < (int)(length - 1); y+=stride)
 		{
 			int top = x * length + y - offset;
-			int bottom = top + stride;
-			int left = top - halfStride * (int)length + halfStride;
-			int right = top + halfStride * (int)length + halfStride;
+			//int bottom = top + stride;
+			int center = top + halfStride;
+			//int left = center - halfStrideByLength;
+			//int right = center + halfStrideByLength;
 
 			// Quite a bit of branching.
-			float t = (y - offset >= 0) ? heights[top] : 0;			// Top.
-			float l = (x != 0) ? heights[left] : 0;					// Left.
-			float r = (x != length - 1) ? heights[right] : 0;		// Right.
-			float b = (y + offset < length) ? heights[bottom] : 0;	// Bottom.
+			float numerator = 0, div = 0;
+			if (y - offset >= 0)			{ numerator += heights[top]; div++; }
+			if (y + offset < (int)length)	{ numerator += heights[top + stride]; div++; }
+			if (x != 0)						{ numerator += heights[center - halfStrideByLength]; div++; }
+			if (x != length - 1)			{ numerator += heights[center + halfStrideByLength]; div++; }
 
 			// Center = avg diamond around it + some random.
-			heights[top + halfStride] = (t + l + r + b) / 4.0f + randf() * (float)halfStride - (float)halfStride/2.0f;
-			//printf("Diamond : Loc (%i), tl: %f, bl: %f, tr: %f, br: %f\n", top, t, l, r, b);
+			heights[center] = (numerator) / div + randf() * (float)halfStride - (float)halfStride / 2.0f;
 		}
-	}
+	}//);
 
 	stride = halfStride;
 	iteration++;
