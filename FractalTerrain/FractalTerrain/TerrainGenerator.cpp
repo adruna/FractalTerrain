@@ -11,6 +11,8 @@
 
 using namespace Concurrency;
 
+static const float RANDF_MAX = (float)RAND_MAX;
+
 #pragma region Helpers
 
 /*
@@ -76,27 +78,6 @@ void initIndexBuffer(GLuint iboid, int numIndicies, GLuint *indexData, unsigned 
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndicies*sizeof(GLuint), indexData, GL_STATIC_DRAW);
 }
 
-static int next = (int)time(nullptr);
-static const float RANDF_MAX = (float)RAND_MAX;
-
-/*
-Returns a random float between 0,1.
-(lots of float conversions and rand takes a looonng time).
-Inline this?
-*/
-inline float randf()
-{
-	/*
-	return (float)rand() / RANDF_MAX;
-	/*/
-	
-	next *= 0x343FD;
-	next += 0x269EC3;
-
-	return (float)((next >> 0x10) & RAND_MAX) / RANDF_MAX;
-	//*/
-}
-
 #pragma endregion
 
 /*
@@ -119,6 +100,7 @@ TerrainGenerator::TerrainGenerator(ShaderProgram* program, int power)
 
 	// Allocate array data. Indexdata pointer is local because we don't need to keep that around on the cpu.
 	heights = new float[size];
+	rands = new float[size];
 	points = new float[size * 4]; // This can get quite large..
 	GLuint *indexData = new GLuint[indices];
 	
@@ -156,6 +138,7 @@ TerrainGenerator::~TerrainGenerator()
 {
 	delete[size] heights;
 	delete[size*4] points;
+	delete[size] rands;
 
 	glDisableVertexAttribArray(1);
 	glDisableVertexAttribArray(0);
@@ -180,14 +163,24 @@ void TerrainGenerator::reset()
 
 	// Set stride.
 	stride = length - 1;
+	float halfStride = (float)stride / 2.0f;
+
+	// Calculate all the random numbers we'll need.
+	int next = (int)time(nullptr);
+
+	for (size_t i = 0; i < size; i++)
+	{
+		next *= 0x343FD;
+		next += 0x269EC3;
+		rands[i] = (float)((next >> 0x10) & RAND_MAX) / RANDF_MAX;
+	}
 
 	// Set initial corner values.
-	heights[0] = randf() * (float)stride - (float)stride / 2.0f;
-	heights[length - 1] = randf() * (float)stride - (float)stride / 2.0f;
-	heights[size - length] = randf() * (float)stride - (float)stride / 2.0f;
-	heights[size - 1] = randf() * (float)stride - (float)stride / 2.0f;
-
-
+	heights[0] = rands[0] * (float)stride - halfStride;
+	heights[length - 1] = rands[length - 1] * (float)stride - halfStride;
+	heights[size - length] = rands[size - length] * (float)stride - halfStride;
+	heights[size - 1] = rands[size - 1] * (float)stride - halfStride;
+	
 	updateVertexBuffers(vboid, points, heights, size, length);
 	// Binding taken care of in updateVertexBuffers
 }
@@ -224,8 +217,8 @@ void TerrainGenerator::iterate(bool finishing)
 	int halfStrideByLength = halfStride * length;
 
 	// Square
-	//parallel_for(size_t(0), (size_t)(length - 1), stride, [&](size_t x)
-	for (int x = 0; x < length - 1; x += stride)
+	//for (int x = 0; x < length - 1; x += stride)
+	parallel_for(size_t(0), (size_t)(length - 1), stride, [&](size_t x)
 	{
 		for (int y = 0; y < (int)length - 1; y += stride)
 		{
@@ -239,23 +232,21 @@ void TerrainGenerator::iterate(bool finishing)
 			float br = heights[topRight + stride];	// Bottom Right.
 			
 			// center = avg of square around it + some random.
-			heights[center] = (tl + bl + tr + br) / 4.0f + randf() * (float)halfStride - (float)halfStride / 2.0f;
+			heights[center] = (tl + bl + tr + br) / 4.0f + rands[center] * (float)halfStride - (float)halfStride / 2.0f;
 		}
-	}//);
+	});
 
-	//parallel_for(size_t(0), length, (unsigned int)halfStride, [&](size_t x)
-	for (int x = 0; x < length; x+=halfStride)
+	// Diamond
+	//for (int x = 0; x < length; x += halfStride)
+	parallel_for(size_t(0), length, (unsigned int)halfStride, [&](size_t x)
 	{
+		// 0, halfstride, 0, halfstride...
 		int offset = ((x / halfStride) & (0x1))*halfStride;
-		// 0, halfstride, 0, halfstride.
 
 		for (int y = 0; y - offset < (int)(length - 1); y+=stride)
 		{
 			int top = x * length + y - offset;
-			//int bottom = top + stride;
 			int center = top + halfStride;
-			//int left = center - halfStrideByLength;
-			//int right = center + halfStrideByLength;
 
 			// Quite a bit of branching.
 			float numerator = 0, div = 0;
@@ -265,9 +256,9 @@ void TerrainGenerator::iterate(bool finishing)
 			if (x != length - 1)			{ numerator += heights[center + halfStrideByLength]; div++; }
 
 			// Center = avg diamond around it + some random.
-			heights[center] = (numerator) / div + randf() * (float)halfStride - (float)halfStride / 2.0f;
+			heights[center] = (numerator) / div + rands[center] * (float)halfStride - (float)halfStride / 2.0f;
 		}
-	}//);
+	});
 
 	stride = halfStride;
 	iteration++;
