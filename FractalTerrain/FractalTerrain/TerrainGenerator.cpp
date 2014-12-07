@@ -48,7 +48,7 @@ I might take binding buffer data out of these later.
 */
 void initIndexBuffer(GLuint iboid, int numIndicies, GLuint *indexData, unsigned int length)
 {
-	// Uncomment if need everything starting at zero.
+	// Uncomment if need everything to start at zero.
 	//memset(indexData, 0, indices*sizeof(GLuint));
 
 	int index = 0;
@@ -80,27 +80,35 @@ void initIndexBuffer(GLuint iboid, int numIndicies, GLuint *indexData, unsigned 
 
 #pragma endregion
 
-/*
-Creates the terrain generator and anything needed to draw it (buffers).
-Requires a shader to use and the power to use. (2^power + 1) vertices.
-*/
-TerrainGenerator::TerrainGenerator(ShaderProgram* program, int power)
+TerrainGenerator::TerrainGenerator(int power)
 {
-	shaderProgram = program;
-	iteration = 0;
-
 	// 2^(power) vertices on each side of the square. (regretable cast but oh well, only on creation).
 	length = (int)pow(2.0f, power) + 1;
 
 	// Total number of vertices
 	size = length * length;
 
+	heights = new float[size];
+	rands = new float[size];
+
+	resetArrays();
+}
+
+/*
+Creates the terrain generator and anything needed to draw it (buffers).
+Requires a shader to use and the power to use. (2^power + 1) vertices.
+*/
+TerrainGenerator::TerrainGenerator(ShaderProgram* program, int power) : TerrainGenerator::TerrainGenerator(power)
+{
+	//TerrainGenerator::TerrainGenerator(power);
+
+	shaderProgram = program;
+
 	// Total number of indices needed to draw
 	indices = (length - 1) * (length - 1) * 6;
 
 	// Allocate array data. Indexdata pointer is local because we don't need to keep that around on the cpu.
-	heights = new float[size];
-	rands = new float[size];
+	
 	points = new float[size * 4]; // This can get quite large..
 	GLuint *indexData = new GLuint[indices];
 	
@@ -115,8 +123,8 @@ TerrainGenerator::TerrainGenerator(ShaderProgram* program, int power)
 	// Create the Vertex Buffer Object for the Vertex Array.
 	// Potentialy chnge this to GL_STATIC_DRAW, if continuing with the visualization stuff.
 	glGenBuffers(1, &vboid);
-	// Set heights to their intial values and bind buffer.
-	reset();
+	updateVertexBuffers(vboid, points, heights, size, length);
+	// Binding taken care of in updateVertexBuffers
 
 	// Create the Index Buffer for the Vertex Array.
 	glGenBuffers(1, &iboid);
@@ -137,26 +145,36 @@ Cleans up buffers and memory.
 TerrainGenerator::~TerrainGenerator()
 {
 	delete[size] heights;
-	delete[size*4] points;
 	delete[size] rands;
 
-	glDisableVertexAttribArray(1);
-	glDisableVertexAttribArray(0);
+	// Don't check in release, this is only here for testing when we dont create points.
+#if defined(DEBUG) | defined(_DEBUG)
+	if (points != nullptr)
+	{
+#endif
+		delete[size * 4] points;
 
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glDeleteBuffers(1, &vboid);
+		glDisableVertexAttribArray(1);
+		glDisableVertexAttribArray(0);
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-	glDeleteBuffers(1, &iboid);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glDeleteBuffers(1, &vboid);
 
-	glBindVertexArray(0);
-	glDeleteVertexArrays(1, &vaoid);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		glDeleteBuffers(1, &iboid);
+
+		glBindVertexArray(0);
+		glDeleteVertexArrays(1, &vaoid);
+
+#if defined(DEBUG) | defined(_DEBUG)
+	}
+#endif
 }
 
 /*
 Sets heights to their intial values and binds buffer.
 */
-void TerrainGenerator::reset()
+void TerrainGenerator::resetArrays()
 {
 	// Clear to 0
 	memset(heights, 0, size*sizeof(float));
@@ -180,9 +198,20 @@ void TerrainGenerator::reset()
 	heights[length - 1] = rands[length - 1] * (float)stride - halfStride;
 	heights[size - length] = rands[size - length] * (float)stride - halfStride;
 	heights[size - 1] = rands[size - 1] * (float)stride - halfStride;
-	
-	updateVertexBuffers(vboid, points, heights, size, length);
-	// Binding taken care of in updateVertexBuffers
+}
+
+/*
+Resets the terrains arrays back to initial values, and if we have a shader sends this data to the buffers.
+*/
+void TerrainGenerator::reset()
+{
+	// Only here for testing when we don't assign shader and just calculate the heights.
+#if defined(DEBUG) | defined(_DEBUG)
+	if (shaderProgram)
+#endif
+		updateVertexBuffers(vboid, points, heights, size, length);
+
+	resetArrays();
 }
 
 /*
@@ -214,7 +243,7 @@ void TerrainGenerator::iterate(bool finishing)
 		return;
 
 	unsigned int halfStride = stride >> 1;
-	int halfStrideByLength = halfStride * length;
+	unsigned int halfStrideByLength = halfStride * length;
 
 	// Square
 	//for (int x = 0; x < length - 1; x += stride)
@@ -245,23 +274,48 @@ void TerrainGenerator::iterate(bool finishing)
 
 		for (int y = 0; y - offset < (int)(length - 1); y+=stride)
 		{
-			int top = x * length + y - offset;
-			int center = top + halfStride;
+			unsigned int top = x * length + y - offset;
+			unsigned int center = top + halfStride;
 
 			// Quite a bit of branching.
 			float numerator = 0, div = 0;
+			int temp = 0;
+
+			///*
 			if (y - offset >= 0)			{ numerator += heights[top]; div++; }
 			if (y + offset < (int)length)	{ numerator += heights[top + stride]; div++; }
 			if (x != 0)						{ numerator += heights[center - halfStrideByLength]; div++; }
 			if (x != length - 1)			{ numerator += heights[center + halfStrideByLength]; div++; }
+			/*/
+
+			//if (y - offset >= 0)			{ numerator += heights[top]; div++; }
+			temp = (y - offset) >= 0;
+			div += temp;
+			numerator += heights[top * temp] * (float)temp;
+
+			//if (y + offset < (int)length)	{ numerator += heights[top + stride]; div++; }
+			temp = (y + offset) < (int)length;
+			div += temp;
+			numerator += heights[(top + stride) * temp] * (float)temp;
+
+			//if (x != 0)						{ numerator += heights[center - halfStrideByLength]; div++; }
+			temp = (x) != 0;
+			div += temp;
+			numerator += heights[(center - halfStrideByLength) * temp] * (float)temp;
+
+			//if (x != length - 1)			{ numerator += heights[center + halfStrideByLength]; div++; }
+			temp = (x) != length - 1;
+			div += temp;
+			numerator += heights[(center + halfStrideByLength) * temp] * (float)temp;
+			//*/
 
 			// Center = avg diamond around it + some random.
 			heights[center] = (numerator) / div + rands[center] * (float)halfStride - (float)halfStride / 2.0f;
+			
 		}
 	});
 
 	stride = halfStride;
-	iteration++;
 
 	if (!finishing)
 		updateVertexBuffers(vboid, points, heights, size, length);
@@ -276,6 +330,10 @@ void TerrainGenerator::finish()
 	while (stride - 1)
 	{ iterate(true); }
 
+	// Only here for testing when we don't assign shader and just calculate the heights.
+#if defined(DEBUG) | defined(_DEBUG)
+	if (shaderProgram)
+#endif
 	// Update, and re-assign buffer data.
 	updateVertexBuffers(vboid, points, heights, size, length);
 }

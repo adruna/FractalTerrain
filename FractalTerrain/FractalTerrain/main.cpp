@@ -12,7 +12,7 @@ This value will be passed to the terrain generator and used as the n value.
 (1-> 3x3, 2-> 5x5, 10-> 1025x1025)
 Note, 12 seems to be the highest we can fit into an array at the moment, (make points array [size][3]?).
 */
-#define TERRAIN_EXPONENT 7
+#define TERRAIN_EXPONENT 12
 
 using namespace std;
 
@@ -172,6 +172,21 @@ Program entry, window initialization and main loop.
 */
 int main(int argc, char** argv)
 {
+	// UNCOMMENT to ignore opengl stuff and just run the algorithm/reset a ton of times.
+	/* 
+	terrain = new TerrainGenerator(TERRAIN_EXPONENT);
+
+	for (size_t i = 0; i < 50; i++)
+	{
+		finish(0, DOWN);
+		reset(0, DOWN);
+	}
+
+	delete terrain;
+
+	return 0;
+	*/
+
 	if (!glfwInit())
 		return -1;
 
