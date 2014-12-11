@@ -12,9 +12,7 @@ This value will be passed to the terrain generator and used as the n value.
 (1-> 3x3, 2-> 5x5, 10-> 1025x1025)
 Note, 12 seems to be the highest we can fit into an array at the moment, (make points array [size][3]?).
 */
-#define TERRAIN_EXPONENT 12
-
-using namespace std;
+#define TERRAIN_EXPONENT 8
 
 Camera *camera;
 TerrainGenerator *terrain;
@@ -38,14 +36,16 @@ Draw scene.
 void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glGetFloatv(GL_MODELVIEW_MATRIX, world);
-	
+
 	glLoadIdentity();
 	camera->applyViewingTransformations();
+
+	// Most expensive call here, but at the frame rate we're at its not worth trying to fix.
+	glGetFloatv(GL_MODELVIEW_MATRIX, world);
+
 	terrain->draw(world, proj);
 	
 	glfwSwapBuffers(window);
-	keyboardUpdate();
 }
 
 /*
@@ -86,7 +86,8 @@ Toggle the capture of the mouse / camera lookat functionality.
 void toggleCameraLookAt(int key, KeyState state)
 {
 	camera->captureMouse = !camera->captureMouse;
-	// TODO: hide cursor?
+	// hidden = 0x34002, normal = 34001, -> normal + bool => { hidden if true, normal if false }. 
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL + camera->captureMouse);
 }
 #pragma endregion
 
@@ -173,7 +174,7 @@ Program entry, window initialization and main loop.
 int main(int argc, char** argv)
 {
 	// UNCOMMENT to ignore opengl stuff and just run the algorithm/reset a ton of times.
-	/* 
+	/*
 	terrain = new TerrainGenerator(TERRAIN_EXPONENT);
 
 	for (size_t i = 0; i < 50; i++)
@@ -185,7 +186,7 @@ int main(int argc, char** argv)
 	delete terrain;
 
 	return 0;
-	*/
+	//*/
 
 	if (!glfwInit())
 		return -1;
@@ -211,33 +212,11 @@ int main(int argc, char** argv)
 		currentTime = now;
 
 		display();
+		keyboardUpdate();
 		glfwPollEvents();
 	}
 	
-	// Closing
 	cleanup();
 
 	return 0;
 }
-
-
-#pragma region Terrain Step-Step callbacks
-/*
-
-//put these in init (make them statics in terrain generator too).
-addKeyHandler(resetTerrain, 'R', UP);
-addKeyHandler(stepTerrain, 'P', UP);
-addKeyHandler(iterateTerrain, 'O', UP);
-addKeyHandler(finishTerrain, 'I', UP);
-
-// Keyboard callbacks for doing things with the terrain :D
-void stepTerrain(int key, KeyState state)
-{ }//terrain->nextStep(); }
-void iterateTerrain(int key, KeyState state)
-{ }//terrain->nextIteration(); }
-void finishTerrain(int key, KeyState state)
-{ }//terrain->finish(); }
-void resetTerrain(int key, KeyState state)
-{ }//terrain->reset(); }
-*/
-#pragma endregion

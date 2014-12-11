@@ -15,14 +15,13 @@ Camera::Camera(float *deltaTime)
 	dt = deltaTime;
 
 	forward.z = 1;
-	position.y = 0;
+	position.y = 1; // Its about time I did this, starting inside the plane was silly.
 	sphericalAngles[0] = 0;
 	sphericalAngles[1] = (float)PI;
 	boost(); // Make sure we have some speed.
 
 	updateVectors();
 }
-
 
 /* Uses glulookat to orient camera based on position/forward/up. */
 void Camera::applyViewingTransformations()

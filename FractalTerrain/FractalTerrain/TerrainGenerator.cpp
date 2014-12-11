@@ -1,3 +1,4 @@
+#include <ppl.h> // Need to include ppl before thread, so include this before TG.h which has to include thread.
 #include "TerrainGenerator.h"
 
 #include <Windows.h>
@@ -7,10 +8,8 @@
 
 #include <GL\glew.h>
 #include <GL\GL.h>
-#include <ppl.h>
 
-using namespace Concurrency;
-
+// Convert to float once.
 static const float RANDF_MAX = (float)RAND_MAX;
 
 #pragma region Helpers
@@ -78,8 +77,26 @@ void initIndexBuffer(GLuint iboid, int numIndicies, GLuint *indexData, unsigned 
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndicies*sizeof(GLuint), indexData, GL_STATIC_DRAW);
 }
 
+/*
+Populates the rands array with random numbers.
+Needs a seed (time.h's time(nullptr) works).
+(This is run on a seperate thread).
+*/
+void randf(int seed, float *rands, unsigned int size)
+{
+	for (size_t i = 0; i < size; i++)
+	{
+		seed *= 0x343FD;
+		seed += 0x269EC3;
+		rands[i] = (float)((seed >> 0x10) & RAND_MAX) / RANDF_MAX;
+	}
+}
+
 #pragma endregion
 
+/*
+Default constructor that initializes what we need for the algorithm, but not for drawing.
+*/
 TerrainGenerator::TerrainGenerator(int power)
 {
 	// 2^(power) vertices on each side of the square. (regretable cast but oh well, only on creation).
@@ -147,6 +164,12 @@ TerrainGenerator::~TerrainGenerator()
 	delete[size] heights;
 	delete[size] rands;
 
+	if (randThread)
+	{
+		randThread->detach();
+		delete randThread;
+	}
+
 	// Don't check in release, this is only here for testing when we dont create points.
 #if defined(DEBUG) | defined(_DEBUG)
 	if (points != nullptr)
@@ -176,28 +199,28 @@ Sets heights to their intial values and binds buffer.
 */
 void TerrainGenerator::resetArrays()
 {
+	// Calculate all the random numbers we'll need.
+	if (randThread) 
+	{
+		randThread->detach(); 
+		delete randThread;
+	}
+	randThread = new std::thread(randf, (int)time(nullptr), rands, size);
+
 	// Clear to 0
 	memset(heights, 0, size*sizeof(float));
 
 	// Set stride.
 	stride = length - 1;
 	float halfStride = (float)stride / 2.0f;
-
-	// Calculate all the random numbers we'll need.
-	int next = (int)time(nullptr);
-
-	for (size_t i = 0; i < size; i++)
-	{
-		next *= 0x343FD;
-		next += 0x269EC3;
-		rands[i] = (float)((next >> 0x10) & RAND_MAX) / RANDF_MAX;
-	}
+	
+	randIndex = 0;
 
 	// Set initial corner values.
-	heights[0] = rands[0] * (float)stride - halfStride;
-	heights[length - 1] = rands[length - 1] * (float)stride - halfStride;
-	heights[size - length] = rands[size - length] * (float)stride - halfStride;
-	heights[size - 1] = rands[size - 1] * (float)stride - halfStride;
+	heights[0] = rands[randIndex++] * (float)stride - halfStride;
+	heights[length - 1] = rands[randIndex++] * (float)stride - halfStride;
+	heights[size - length] = rands[randIndex++] * (float)stride - halfStride;
+	heights[size - 1] = rands[randIndex++] * (float)stride - halfStride;
 }
 
 /*
@@ -205,13 +228,13 @@ Resets the terrains arrays back to initial values, and if we have a shader sends
 */
 void TerrainGenerator::reset()
 {
+	resetArrays();
+
 	// Only here for testing when we don't assign shader and just calculate the heights.
 #if defined(DEBUG) | defined(_DEBUG)
 	if (shaderProgram)
 #endif
 		updateVertexBuffers(vboid, points, heights, size, length);
-
-	resetArrays();
 }
 
 /*
@@ -247,7 +270,7 @@ void TerrainGenerator::iterate(bool finishing)
 
 	// Square
 	//for (int x = 0; x < length - 1; x += stride)
-	parallel_for(size_t(0), (size_t)(length - 1), stride, [&](size_t x)
+	Concurrency::parallel_for(size_t(0), (size_t)(length - 1), stride, [&](size_t x)
 	{
 		for (int y = 0; y < (int)length - 1; y += stride)
 		{
@@ -261,13 +284,13 @@ void TerrainGenerator::iterate(bool finishing)
 			float br = heights[topRight + stride];	// Bottom Right.
 			
 			// center = avg of square around it + some random.
-			heights[center] = (tl + bl + tr + br) / 4.0f + rands[center] * (float)halfStride - (float)halfStride / 2.0f;
+			heights[center] = (tl + bl + tr + br) / 4.0f + rands[randIndex++] * (float)halfStride - (float)halfStride / 2.0f;
 		}
 	});
 
 	// Diamond
 	//for (int x = 0; x < length; x += halfStride)
-	parallel_for(size_t(0), length, (unsigned int)halfStride, [&](size_t x)
+	Concurrency::parallel_for(size_t(0), length, (unsigned int)halfStride, [&](size_t x)
 	{
 		// 0, halfstride, 0, halfstride...
 		int offset = ((x / halfStride) & (0x1))*halfStride;
@@ -277,40 +300,18 @@ void TerrainGenerator::iterate(bool finishing)
 			unsigned int top = x * length + y - offset;
 			unsigned int center = top + halfStride;
 
-			// Quite a bit of branching.
 			float numerator = 0, div = 0;
-			int temp = 0;
 
-			///*
+			// Seems that branching is actualy faster here.
 			if (y - offset >= 0)			{ numerator += heights[top]; div++; }
 			if (y + offset < (int)length)	{ numerator += heights[top + stride]; div++; }
 			if (x != 0)						{ numerator += heights[center - halfStrideByLength]; div++; }
 			if (x != length - 1)			{ numerator += heights[center + halfStrideByLength]; div++; }
-			/*/
-
-			//if (y - offset >= 0)			{ numerator += heights[top]; div++; }
-			temp = (y - offset) >= 0;
-			div += temp;
-			numerator += heights[top * temp] * (float)temp;
-
-			//if (y + offset < (int)length)	{ numerator += heights[top + stride]; div++; }
-			temp = (y + offset) < (int)length;
-			div += temp;
-			numerator += heights[(top + stride) * temp] * (float)temp;
-
-			//if (x != 0)						{ numerator += heights[center - halfStrideByLength]; div++; }
-			temp = (x) != 0;
-			div += temp;
-			numerator += heights[(center - halfStrideByLength) * temp] * (float)temp;
-
-			//if (x != length - 1)			{ numerator += heights[center + halfStrideByLength]; div++; }
-			temp = (x) != length - 1;
-			div += temp;
-			numerator += heights[(center + halfStrideByLength) * temp] * (float)temp;
-			//*/
+			
+			// See bottom of file for attempt at removing if's.
 
 			// Center = avg diamond around it + some random.
-			heights[center] = (numerator) / div + rands[center] * (float)halfStride - (float)halfStride / 2.0f;
+			heights[center] = (numerator) / div + rands[randIndex++] * (float)halfStride - (float)halfStride / 2.0f;
 			
 		}
 	});
@@ -338,262 +339,22 @@ void TerrainGenerator::finish()
 	updateVertexBuffers(vboid, points, heights, size, length);
 }
 
+// Attempt to remove branching in diamond (turned out to be no faster).
 /*
-
-// Sets everything back to 0.
-void TerrainGenerator::reset()
-{
-	updateVao();
-	
-	// init.
-	it = 1;
-	cSize = GRID_SIZE >> 1;
-	cRand = cSize / it;
-	finished = false;
-	onSquareStep = true;
-	dStep = 0;
-	cPos[0] = cSize;
-	cPos[1] = cSize;
-
-	// Set four corners to random vals.
-	points[0][0] = Globals::randf(-cRand,cRand);
-	points[GRID_SIZE-1][0] = Globals::randf(-cRand,cRand);
-	points[0][GRID_SIZE-1] = Globals::randf(-cRand,cRand);
-	points[GRID_SIZE-1][GRID_SIZE-1] = Globals::randf(-cRand,cRand);
-}
-
-// Performs the square step then calls next block.
-void TerrainGenerator::square()
-{
-	points[cPos[0]][cPos[1]] = ((
-		points[cPos[0] - cSize][cPos[1] - cSize] +
-		points[cPos[0] + cSize][cPos[1] - cSize] +
-		points[cPos[0] - cSize][cPos[1] + cSize] +
-		points[cPos[0] + cSize][cPos[1] + cSize]
-	) / 4.0f ) + Globals::randf(-cRand, cRand);
-
-	nextBlock();
-}
-
-// Performs the diamond step, and then increments 'dStep' unless its the last step, then it goes to next block.
-void TerrainGenerator::diamond()
-{
-	int c[2];
-
-	c[0] = cPos[0];
-	c[1] = cPos[1];
-
-	switch (dStep)
-	{
-		case 0: c[0] -= cSize; break; // left
-		case 1: c[0] += cSize; break; // right
-		case 2: c[1] -= cSize; break; // up
-		case 3: c[1] += cSize; break; // down
-	}
-
-	float result = 0;
-	float div = 0;
-	
-	if (c[0] - cSize >= 0)			{ result += points[c[0] - cSize][c[1]]; div++; } // left
-	if (c[0] + cSize < GRID_SIZE)	{ result += points[c[0] + cSize][c[1]]; div++; } // right
-	if (c[1] - cSize >= 0)			{ result += points[c[0]][c[1] - cSize]; div++; } // up
-	if (c[1] + cSize < GRID_SIZE)	{ result += points[c[0]][c[1] + cSize]; div++; } // down
-	
-	result /= div;
-	result += Globals::randf(-cRand, cRand);
-	points[c[0]][c[1]] = result;
-
-	if (dStep == 3)
-	{
-		dStep = 0; 
-		nextBlock();
-	}
-	else
-		dStep++;
-}
-
-// Calls steps untill its time for the next block, 
-// if its the last block of an iteration, checks to see if we need to go again for diamond.
-// Otherwise halfs size and resets for the next iteration (unless finished of course)
-void TerrainGenerator::nextBlock()
-{
-	if (finished) return;
-	
-	if (cPos[0] + cSize + 1 < GRID_SIZE) // If not at the end of the row, move to next square in row
-		cPos[0] += cSize * 2;
-	else if (cPos[1] + cSize + 1 < GRID_SIZE) // If not at the last column, go to the next row.
-	{
-		cPos[0] = cSize;
-		cPos[1] += cSize * 2;
-	}
-	else if (cSize > 0) // If we're this far, we're in the last position (check to make sure not 0 though).
-	{
-		if (!onSquareStep) // If still on square we need to go through again and do the diamonds
-		{
-			// otherwise half the size if not already 1, if so set to 0 so we finish.
-			if (cSize == 1) cSize = 0;
-			else cSize >>= 1;
-
-			cRand = cSize / (float)it * (float)RANDOMNESS / 5.0f;
-			it++;
-		}
-
-		onSquareStep = !onSquareStep;
-		cPos[0] = cPos[1] = cSize;
-	}
-
-	if (cSize == 0) // Then we're done.
-		finished = true;
-}
-
-// Checks if on square or diamond
-void TerrainGenerator::nextStep()
-{
-	if (onSquareStep)
-		square();
-	else
-		diamond();
-}
-
-// While still on (square/diamond) keeps steping
-void TerrainGenerator::nextIteration()
-{
-	bool temp = onSquareStep;
-	while (temp == onSquareStep && !finished)
-	{ nextStep(); }
-}
-
-// While not finished, step
-void TerrainGenerator::finish()
-{
-	while (!finished)
-	{ nextStep(); } 
-}
-
-// Convience method for the color transitions.
-float lerp(float tMax, float tMin, float t, float min, float max)
-{
-	if (t > tMax) return max;
-	if (t < tMin) return min;
-	float val = ((t - tMin) / (tMax - tMin)) * max + min;
-	if (val > max) return max;
-	if (val < min) return min;
-	return val;
-}
-
-// Draws the grid using the points[][] array as the y values
-void TerrainGenerator::drawTerrain()
-{
-	int halfSize = GRID_SIZE/2;
-	float y;
-
-	// Loop through each x, drawing lines along the z axis.
-	for (int x = 0; x < GRID_SIZE; x++)
-	{
-		glBegin(GL_LINE_STRIP);
-		for (int z = 0; z < GRID_SIZE; z++)
-		{
-			y = points[x][z];
-			if (y < -300) glColor3f(0.0f, 0.2f, 0.8f); // blue water
-			else if	(y > 300) glColor3f(0.8f, 0.8f, 0.8f); // white snow
-			else if (y > 100) glColor3f(lerp(250,100,y,0, 0.4f), 0.8 - lerp(300,150,y, 0.0, 0.6f), 0.0); // transition from green to a brown to show "tree line"
-			else glColor3f(0.0, 0.8f, 0.2f); // green grass
-				
-			glVertex3f((x-halfSize) * CELL_SIZE, y, (z-halfSize) * CELL_SIZE);
-		}
-		glEnd();
-	}
-	
-	// loop through each z, drawing lines along the x axis.
-	for (int z = 0; z < GRID_SIZE; z++)
-	{
-		glBegin(GL_LINE_STRIP);
-		for (int x = 0; x < GRID_SIZE; x++)
-		{
-			y = points[x][z];
-			// same colors as above
-			if (y < -300) glColor3f(0.0f, 0.2f, 0.8f);
-			else if	(y > 300) glColor3f(0.8f, 0.8f, 0.8f);
-			else if (y > 100) glColor3f(lerp(250,100,y,0, 0.4f), 0.8 - lerp(300,150,y, 0.0, 0.6f), 0.0);
-			else glColor3f(0.0, 0.8f, 0.2f);
-
-			glVertex3f((x-halfSize) * CELL_SIZE, y, (z-halfSize) * CELL_SIZE);
-		}
-		glEnd();
-	}
-
-	glColor3f(1,1,1);
-
-	drawNextPoints();
-}
-
-// Draws the next points to be calculated (green for point to be calculated, red for the points used in the averaging.
-void TerrainGenerator::drawNextPoints()
-{
-	if (finished) return; // Dont do this if finished
-
-	int halfSize = GRID_SIZE/2;
-	int x = 0,z = 0;
-
-	glPointSize(10.0f);
-	glBegin(GL_POINTS);
-	
-	if (onSquareStep)
-	{
-		glColor3f(0,1,0);
-		x = cPos[0]; z = cPos[1];
-		glVertex3f( (x - halfSize) * CELL_SIZE, points[x][z], (z - halfSize) * CELL_SIZE);
-		
-		glColor3f(1,0,0);
-		x = cPos[0] - cSize; z = cPos[1] - cSize; // top left
-		glVertex3f( (x - halfSize) * CELL_SIZE, points[x][z], (z - halfSize) * CELL_SIZE);
-		x = cPos[0] + cSize; z = cPos[1] - cSize; // top right
-		glVertex3f( (x - halfSize) * CELL_SIZE, points[x][z], (z - halfSize) * CELL_SIZE);
-		x = cPos[0] - cSize; z = cPos[1] + cSize; // bottom left
-		glVertex3f( (x - halfSize) * CELL_SIZE, points[x][z], (z - halfSize) * CELL_SIZE);
-		x = cPos[0] + cSize; z = cPos[1] + cSize; // bottom right
-		glVertex3f( (x - halfSize) * CELL_SIZE, points[x][z], (z - halfSize) * CELL_SIZE);
-	}
-	else
-	{
-		int c[2];
-		c[0] = cPos[0];
-		c[1] = cPos[1];
-
-		switch (dStep)
-		{
-			case 0: c[0] -= cSize; break;
-			case 1: c[0] += cSize; break;
-			case 2: c[1] -= cSize; break;
-			case 3: c[1] += cSize; break;
-		}
-
-		glColor3f(0,1,0);
-		x = c[0]; z = c[1];
-		glVertex3f( (x - halfSize) * CELL_SIZE, points[x][z], (z - halfSize) * CELL_SIZE);
-		
-		glColor3f(1,0,0);
-
-		x = c[0] + cSize; z = c[1]; // right
-		if (x < GRID_SIZE)	
-			glVertex3f( (x - halfSize) * CELL_SIZE, points[x][z], (z - halfSize) * CELL_SIZE);
-
-		x = c[0] - cSize; // left
-		if (x >= 0)			
-			glVertex3f( (x - halfSize) * CELL_SIZE, points[x][z], (z - halfSize) * CELL_SIZE);
-
-		x = c[0]; z = c[1] + cSize; // down
-		if (z < GRID_SIZE)	
-			glVertex3f( (x - halfSize) * CELL_SIZE, points[x][z], (z - halfSize) * CELL_SIZE);
-
-		z = c[1] - cSize; // up
-		if (z >= 0)			
-			glVertex3f( (x - halfSize) * CELL_SIZE, points[x][z], (z - halfSize) * CELL_SIZE);
-	}
-
-	glEnd();
-	glPointSize(1);
-	glColor3f(1,1,1);
-	
-}
+//if (y - offset >= 0)			{ numerator += heights[top]; div++; }
+temp = (y - offset) >= 0;
+div += temp;
+numerator += heights[top * temp] * (float)temp;
+//if (y + offset < (int)length)	{ numerator += heights[top + stride]; div++; }
+temp = (y + offset) < (int)length;
+div += temp;
+numerator += heights[(top + stride) * temp] * (float)temp;
+//if (x != 0)						{ numerator += heights[center - halfStrideByLength]; div++; }
+temp = (x) != 0;
+div += temp;
+numerator += heights[(center - halfStrideByLength) * temp] * (float)temp;
+//if (x != length - 1)			{ numerator += heights[center + halfStrideByLength]; div++; }
+temp = (x) != length - 1;
+div += temp;
+numerator += heights[(center + halfStrideByLength) * temp] * (float)temp;
 */

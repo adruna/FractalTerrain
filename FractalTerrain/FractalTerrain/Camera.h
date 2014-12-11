@@ -8,6 +8,11 @@
 This class is used to control where the "camera" is.
 
 Modeled after some generic fps functionality.
+
+Future work
+	Implement vectors a bit better.
+	Play with input.
+	Create an actual matrix instead of using glu lookat.
 */
 class Camera
 {

@@ -2,8 +2,6 @@
 #include <GL/glew.h>
 #include "GlobalValues.h"
 
-using namespace std;
-
 /*
 Standard glfw error check.
 Optional message since glfw messages are usualy pretty pathetic.
@@ -23,7 +21,7 @@ void errorCheck(const char *message)
 	}
 }
 
-// Obtained from example Angel code for graphics
+// Obtained from Jessica Bayliss (who obtained it from an example of Angel code for graphics).
 
 // Create a NULL-terminated string by reading the provided file
 char* readShaderSource(const char* shaderFile)
