@@ -15,9 +15,10 @@ Camera Controls :
 	S - Backward
 	A - Left
 	D - Right
-	Space - Up
-	N - Speed up movement
-	B - Slow down movement
+	E - Down
+	Q - Up
+	Z - Speed up movement
+	X - Slow down movement
 	
 Terrain Controls
 	Starts out with only the 4 outermost points calculated.
@@ -45,5 +46,5 @@ Temporary note** (there's some more stuff below here regarding github stuff).
 ------------------------------------------------------------------------------------------------------------------
 
 GitHub:
-	I'm using github to make this easier to put up on my github account later on.
+	I'm using github to make this easier to put up on my github account later on. (Which is now happening!!)
 	Also to help manage some of the files that I'd rather not include in my deliverables (see .gitignore for more about this).

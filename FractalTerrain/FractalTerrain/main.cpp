@@ -84,8 +84,8 @@ void reshape(GLFWwindow *window, int width, int height)
 bool captureMouse;
 
 // This was silly, just use seperate functions?
-static const int boostPositive = 'R';
-static const int boostNegative = 'F';
+static const int boostPositive = 'X';
+static const int boostNegative = 'Z';
 
 static const int rightPositive = 'A';
 static const int rightNegative = 'D';
@@ -100,7 +100,7 @@ static const int forwardNegative = 'S';
 void cameraBoost(int key, KeyState state)
 {
 	// negatives are allowed.
-	cameraSpeed += 10 * (2 * (key == boostPositive) - 1);
+	cameraSpeed += 1 * (2 * (key == boostPositive) - 1);
 }
 
 // Move camera right (left if negative key).
@@ -230,6 +230,8 @@ void init(GLFWwindow *window)
 	addKeyHandler(moveUp, upNegative, DOWNHELD);
 	addKeyHandler(moveRight, rightPositive, DOWNHELD);
 	addKeyHandler(moveRight, rightNegative, DOWNHELD);
+	addKeyHandler(cameraBoost, boostPositive, DOWN);
+	addKeyHandler(cameraBoost, boostNegative, DOWN);
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
