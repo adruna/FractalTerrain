@@ -2,7 +2,6 @@
 #define CAMERA_H
 
 #include "Keyboard.h"
-#include "Vector.h"
 
 /*
 This class is used to control where the "camera" is.
@@ -16,46 +15,70 @@ Future work
 */
 class Camera
 {
-private:
-	static Camera *current;
-	
-	bool boosted;
-	float *dt;
-	float speed;
-	Vector2 sphericalAngles, center;
-	Vector3 forward, up, right, position;
+private:	
+	float prevousMouse[2];
+	float *dt_ptr;
 
-	void moveForward();
-	void moveBack();
-	void moveRight();
-	void moveLeft();
-	void moveUp();
-	void moveDown();
-	void boost();
-	void slow();
+	// Spherical interpretation of look.
+	float sphericalAngles[2];
+
+	// Transform.
+	float position[3];
+	float forward[3];
+	float up[3]; 
+	float right[3];
+	float speed;
+	float matrix[16];
 
 	void updateVectors(void);
-
-	// Static keyboard callbacks used by current.
-	static void moveForwardCallback(int, KeyState);
-	static void moveBackCallback(int, KeyState);
-	static void moveRightCallback(int, KeyState);
-	static void moveLeftCallback(int, KeyState);
-	static void moveUpCallback(int, KeyState);
-	static void moveDownCallback(int, KeyState);
-	static void boostCallback(int key, KeyState state);
-	static void slowCallback(int key, KeyState state);
-
+	
 public:
 	bool captureMouse;
+	bool invertY;
+	bool invertX;
+	float *viewMatrix = matrix;
+	
+	/*
+	 Constructs a camera.
+	 Requires a pointer to the applications delta time.
+	 Optional set to invert X or Y, default false and true respectively.
+	*/
+	Camera(float *dt, bool invertX = false, bool invertY = true);
 
-	Camera(float *);
+	/*
+	 Modfies the azimuthal and altitudinal angles based on the change in mouse x and y.
+	 Then updates the forward/up/right vectors accordingly.
+	*/
+	void mouseMoved(float mouseX, float mouseY);
 
-	void reshapeFunc(float x, float y);
-	void mouseMoved(float x, float y);
-	void applyViewingTransformations();
+	/*
+	 Constructs the view matrix.
+	*/
+	void applyViewingTransformations(void);
 
-	static void init();
+	/* 
+	 Sets the camera's position. 
+	*/
+	void setPosition(float x, float y, float z);
+
+	/* 
+	 Moves the camera local to it's transform. 
+	 X - move to camera's right.
+	 Y - move to camera's up.
+	 Z - move to camera's forward.
+	*/
+	void move(float x, float y, float z);
+
+	/* 
+	 Boosts the camera's move speed. 
+	*/
+	void boost(float boostAmount);
+
+	/*
+	Sets previous mouse data.
+	Use when cursor might suddenly have a new position you don't want affecting the camera.
+	*/
+	void setPreviousMouseData(float mouseX, float mouseY); 
 };
 
 #endif

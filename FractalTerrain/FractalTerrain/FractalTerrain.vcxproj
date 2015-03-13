@@ -90,8 +90,6 @@ copy "$(SolutionDir)\library" "$(OutDir)"</Command>
     <ClCompile Include="Keyboard.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="TerrainGenerator.cpp" />
-    <ClCompile Include="VectorBase.cpp" />
-    <ClCompile Include="Vectors.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
@@ -99,7 +97,6 @@ copy "$(SolutionDir)\library" "$(OutDir)"</Command>
     <ClInclude Include="Keyboard.h" />
     <ClInclude Include="KeyboardHandler.h" />
     <ClInclude Include="TerrainGenerator.h" />
-    <ClInclude Include="Vector.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="fragment.glsl">

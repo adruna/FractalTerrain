@@ -1,159 +1,117 @@
 #include "Camera.h"
 
 #include "GlobalValues.h"
-
 #include <math.h>
-#include <Windows.h>
-#include <GL\GLU.h>
 
-Camera *Camera::current;
-
-/* Constructor! */
-Camera::Camera(float *deltaTime)
+/* Set right, up, forward, spherical angles defaults. */
+Camera::Camera(float *deltaTime, bool _invertX, bool _invertY)
 {
-	current = this;
-	dt = deltaTime;
+	dt_ptr = deltaTime;
 
-	forward.z = 1;
-	position.y = 1; // Its about time I did this, starting inside the plane was silly.
-	sphericalAngles[0] = 0;
-	sphericalAngles[1] = (float)PI;
-	boost(); // Make sure we have some speed.
+	invertX = _invertX;
+	invertY = _invertY;
+	
+	right[0] = 1;
+	up[1] = 1;
+	forward[2] = 1;
 
 	updateVectors();
 }
 
-/* Uses glulookat to orient camera based on position/forward/up. */
+/* 
+Sets the matrix values, this mignt not be necessary... (have r,u,f vectors just be these mem locations) 
+Also, this is kinda wrong anyways but surprisingly it works for right now, this will be the next thing to come back and look at.
+I'll also explain whats going on here in more detail when I've fixed it.
+*/
 void Camera::applyViewingTransformations()
 {
+	matrix[0] = right[0];
+	matrix[1] = up[0];
+	matrix[2] = forward[0];
+	matrix[3] = 0;
+
+	matrix[4] = right[1];
+	matrix[5] = up[1];
+	matrix[6] = forward[1];
+	matrix[7] = 0;
+
+	matrix[8] = right[2];
+	matrix[9] = up[2];
+	matrix[10] = forward[2];
+	matrix[11] = 0;
+
+	matrix[12] = right[0] * position[0] + right[1] * position[1] + right[2] * position[2];
+	matrix[13] = up[0] * position[0] + up[1] * position[1] + up[2] * position[2];
+	matrix[14] = forward[0] * position[0] + forward[1] * position[1] + forward[2] * position[2];
+	matrix[15] = 1;
+
+	/*
 	gluLookAt(
-		position.x, position.y, position.z,
-		position.x + forward.x, position.y + forward.y, position.z + forward.z,
-		up.x, up.y, up.z
+		position[0], position[1], position[2],
+		position[0] + forward[0], position[1] + forward[1], position[2] + forward[2],
+		up[0], up[1], up[2]
 	);
+	*/
 }
 
 /* Recalculates forward, right, and up orientation vectors based on the spherical coordinates. */
 void Camera::updateVectors()
 {
-	forward.x = cos(sphericalAngles[1]) * sin(sphericalAngles[0]);
-	forward.y =	sin(sphericalAngles[1]);
-	forward.z =	cos(sphericalAngles[1]) * cos(sphericalAngles[0]);
+	float cosY = cos(sphericalAngles[1]);
 
-	right.x = sin(sphericalAngles[0] - (float)PI_2);
-	right.y = 0;
-	right.z = cos(sphericalAngles[0] - (float)PI_2);
+	forward[0] = cosY * sin(sphericalAngles[0]);
+	forward[1] = sin(sphericalAngles[1]);
+	forward[2] = cosY * cos(sphericalAngles[0]);
 
-	up = Vector3::Cross(forward, right);
+	right[0] = -sin(sphericalAngles[0] - (float)PI_2);
+	right[1] = 0;
+	right[2] = -cos(sphericalAngles[0] - (float)PI_2);
+
+	// Up = Forward cross Right. 
+	// i   j   k
+	// a   b   c
+	// A   B   C
+	// i(bC - cB) - j (aC - cA) + k (aB - bA)
+	up[0] = forward[1] * right[2] - forward[2] * right[1];
+	up[1] = forward[2] * right[0] - forward[0] * right[2];
+	up[2] = forward[0] * right[1] - forward[1] * right[0];
 }
 
 /* Handles mouse input for changing the camera's direction. */
 void Camera::mouseMoved(float x, float y)
-{
-	if (captureMouse)
-	{
-		if (x == center[0] && y == center[1])
-			return;
+{	
+	float dt = *dt_ptr;
+	float dx = x - prevousMouse[0];
+	float dy = y - prevousMouse[1];
 
-		float dx = center[0] - x;
-		float dy = y - center[1];
+	sphericalAngles[0] += dx * dt * (2.0f*invertX - 1.0f);
+	sphericalAngles[1] += dy * dt * (2.0f*invertY - 1.0f);
 
-		sphericalAngles[0] += dx / 250.0f;
-		sphericalAngles[1] += dy / 250.0f;
+	prevousMouse[0] = x;
+	prevousMouse[1] = y;
 
-		updateVectors();
-	}
+	updateVectors();
 }
 
-/* Sets the centers for the mouse calculations. */
-void Camera::reshapeFunc(float width, float height)
+/* World position set. */
+void Camera::setPosition(float x, float y, float z)
 {
-	center.x = width / 2.0f;
-	center.y = height / 2.0f;
+	position[0] = x;
+	position[1] = y;
+	position[2] = z;
 }
 
-/* Initilizes camera usage. Applies some keyboard handlers that then call functions in Camera::current. */
-void Camera::init()
+/* position += x * right + y * up + z * forward; */
+void Camera::move(float x, float y, float z)
 {
-	addKeyHandler(moveForwardCallback, 'W', DOWNHELD);
-	addKeyHandler(moveBackCallback, 'S', DOWNHELD);
-	addKeyHandler(moveRightCallback, 'D', DOWNHELD);
-	addKeyHandler(moveLeftCallback, 'A', DOWNHELD);
-
-	addKeyHandler(moveUpCallback, ' ', DOWNHELD);
-	//addKeyHandler(moveUpCallback, GLFW_KEY_LEFT_CONTROL, DOWNHELD); // Dosnt work
-
-	// Also not working.
-	addKeyHandler(boostCallback, 'B', UP);
-	addKeyHandler(slowCallback, 'N', UP);
+	position[0] += (x * right[0] + y * up[0] + z * forward[0]);
+	position[1] += (x * right[1] + y * up[1] + z * forward[1]);
+	position[2] += (x * right[2] + y * up[2] + z * forward[2]);
 }
 
-#pragma region Keyboard Callbacks
-
-/* Keyboard Callback: moves the current camera forward. */
-void Camera::moveForwardCallback(int key, KeyState state)
-{ current->moveForward(); }
-
-/* Keyboard Callback: moves the current camera backwards. */
-void Camera::moveBackCallback(int key, KeyState state)
-{ current->moveBack(); }
-
-/* Keyboard Callback: moves the current camera left. */
-void Camera::moveLeftCallback(int key, KeyState state)
-{ current->moveLeft(); }
-
-/* Keyboard Callback: moves the current camera right. */
-void Camera::moveRightCallback(int key, KeyState state)
-{ current->moveRight(); }
-
-/* Keyboard Callback: moves the current camera up. */
-void Camera::moveUpCallback(int key, KeyState state)
-{ current->moveUp(); }
-
-/* Keyboard Callback: moves the current camera down. */
-void Camera::moveDownCallback(int key, KeyState state)
-{ current->moveDown(); }
-
-/* Keyboard Callback: boosts the camera movement. */
-void Camera::boostCallback(int key, KeyState)
-{ current->boost(); }
-
-/* Keyboard Callback: slows the camera movement. */
-void Camera::slowCallback(int key, KeyState)
-{ current->slow(); }
-
-// The actual member functions, THEY DONT USE DT ANYMORE!!(bad)
-/* Moves the camera along its forward vector. */
-void Camera::moveForward()
-{ position += forward * (*dt) * (speed); }
-
-/* Moves the camera along its forward vector a negative amount. */
-void Camera::moveBack()
-{ position -= forward * (*dt) * (speed); }
-
-/* Moves the camera along its right vector. */
-void Camera::moveRight()
-{ position -= right * (*dt) * (speed); }
-
-/* Moves the camera along its right vector a negative amount. */
-void Camera::moveLeft()
-{ position += right * (*dt) * (speed); }
-
-/* Moves the camera along its up vector. */
-void Camera::moveUp()
-{ position += up * (*dt) * (speed); }
-
-/* Moves the camera along its up vector a negative amount. */
-void Camera::moveDown()
-{ position -= up * (*dt) * (speed); }
-
-/* Increases the current speed of the camera by 5. */
-void Camera::boost()
-{ speed += 5; }
-
-/* Decreases the current speed of the camera by 5, if its not already less than 5. */
-void Camera::slow()
-{ if (speed > 5) speed -= 5; }
-
-#pragma endregion
-
+/* Now the dx,dy will be based off these. */
+void Camera::setPreviousMouseData(float x, float y)
+{
+	prevousMouse[0] = x;
+	prevousMouse[1] = y;
+}
